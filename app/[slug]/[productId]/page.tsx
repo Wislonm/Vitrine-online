@@ -1,0 +1,90 @@
+import type { Metadata } from 'next'
+import { notFound } from 'next/navigation'
+import { CartProvider } from '@/components/storefront/cart-context'
+import { ProductDetail } from '@/components/storefront/product-detail'
+import { StoreFooter } from '@/components/storefront/store-footer'
+import { getProduct } from '@/lib/repositories/products'
+import { listVariations } from '@/lib/repositories/variations'
+import { getStoreSettings } from '@/lib/repositories/stores'
+import { getPublicStore } from '@/lib/services/public-store'
+import { getStoreThemeStyle } from '@/lib/store-themes'
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string; productId: string }> }): Promise<Metadata> {
+  const { slug, productId } = await params
+  const store = await getPublicStore(slug.toLowerCase())
+  if (!store) return { title: 'Produto não encontrado', robots: { index: false } }
+  const product = await getProduct(store.id, productId)
+  return { title: product?.name ?? 'Produto não encontrado', robots: product ? undefined : { index: false } }
+}
+
+export default async function ProductDetailPage({ params }: { params: Promise<{ slug: string; productId: string }> }) {
+  const { slug, productId } = await params
+  const store = await getPublicStore(slug.toLowerCase())
+  if (!store) notFound()
+
+  const [product, variations, settings] = await Promise.all([
+    getProduct(store.id, productId),
+    listVariations(productId),
+    getStoreSettings(store.id),
+  ])
+  if (!product || !product.isActive || !product.isPublished) notFound()
+
+  const displayName = settings?.displayName || store.name
+  const themeStyle = getStoreThemeStyle(settings?.colorScheme)
+
+  return (
+    <CartProvider storeSlug={store.slug}>
+      <div className="min-h-dvh bg-background" style={themeStyle}>
+      <ProductDetail
+        slug={store.slug}
+        storeName={displayName}
+        canReceiveOrders={Boolean(store.whatsapp)}
+        themeStyle={themeStyle}
+        product={{
+          id: product.id,
+          name: product.name,
+          referenceCode: product.referenceCode,
+          sku: product.sku,
+          description: product.description,
+          price: Number(product.price),
+          offerPrice: product.offerPrice === null ? null : Number(product.offerPrice),
+          priceOnRequest: product.priceOnRequest,
+          stockStatus: product.stockStatus as 'in_stock' | 'made_to_order' | 'out_of_stock',
+          stockQuantity: product.stockQuantity,
+          imageUrl: product.imageUrl,
+          galleryImages: product.galleryImages,
+          categoryId: product.categoryId,
+          variations: variations.map((variation) => ({
+            id: variation.id,
+            name: variation.name,
+            selectorType: variation.selectorType as 'text' | 'color' | 'number' | 'image',
+            displayOnCard: variation.displayOnCard,
+            options: variation.options.map((option) => ({
+              id: option.id,
+              label: option.label,
+              value: option.value,
+              colorValue: option.colorValue,
+              imageUrl: option.imageUrl,
+            })),
+          })),
+        }}
+      />
+      <div className="mx-auto flex w-full max-w-5xl flex-col px-4 pb-28 sm:px-5">
+        <StoreFooter
+          name={displayName}
+          description={store.description}
+          whatsapp={store.whatsapp}
+          phone={store.phone}
+          email={store.contactEmail}
+          address={store.address}
+          city={store.city}
+          state={store.state}
+          documentType={store.documentType}
+          documentNumber={store.documentNumber}
+          social={settings?.socialLinks ?? {}}
+        />
+      </div>
+      </div>
+    </CartProvider>
+  )
+}
