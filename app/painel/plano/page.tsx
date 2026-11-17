@@ -5,6 +5,7 @@ import { MercadoPagoTransparentCheckout } from '@/components/panel/mercadopago-t
 import { CancelMercadoPagoSubscriptionButton } from '@/components/panel/cancel-mercadopago-subscription-button'
 import { formatBRL } from '@/lib/format'
 import { getMercadoPagoSettingsForAdmin } from '@/lib/repositories/payment-settings'
+import { listPlans } from '@/lib/repositories/plans'
 import { requireSellerContext } from '@/lib/session'
 import { getPlanUsage } from '@/lib/services/plan-usage'
 
@@ -32,12 +33,14 @@ function formatDate(date: Date) {
 
 export default async function PlanPage() {
   const { user, store } = await requireSellerContext({ allowExpiredPlan: true })
-  const [usage, paymentSettings] = await Promise.all([
+  const [usage, paymentSettings, activePlans] = await Promise.all([
     getPlanUsage(store.id),
     getMercadoPagoSettingsForAdmin(),
+    listPlans({ onlyActive: true }),
   ])
+  const contractPlan = activePlans.find((plan) => plan.slug === 'business') ?? activePlans[0] ?? null
   const trialEnd = usage.subscription?.expiresAt ?? null
-  const planPrice = usage.plan ? Number(usage.plan.price) : 0
+  const planPrice = contractPlan ? Number(contractPlan.price) : 0
   const checkoutConfigured = Boolean(paymentSettings.publicKey && paymentSettings.hasAccessToken && paymentSettings.hasWebhookSecret)
   const environmentSafe = paymentSettings.environment === 'production' ? process.env.VERCEL_ENV === 'production' : process.env.VERCEL_ENV !== 'production'
   const checkoutAvailable = usage.subscriptionExpired && planPrice > 0 && checkoutConfigured && environmentSafe
@@ -60,15 +63,15 @@ export default async function PlanPage() {
     <>
       <PageHeader
         title={pageTitle}
-        description={usage.subscriptionExpired ? unavailableDescription : 'Seu teste grátis libera todos os recursos do painel por 30 dias.'}
+        description={usage.subscriptionExpired ? unavailableDescription : 'Seu plano de degustação libera todos os recursos do painel por 7 dias.'}
       />
 
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-5">
         <section className="flex flex-col gap-5 rounded-3xl bg-tile p-5 sm:p-8">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-sm text-muted-foreground">Plano único</p>
-              <h2 className="mt-1 font-display text-2xl font-semibold">{usage.plan?.name ?? 'Plano único'}</h2>
+              <p className="text-sm text-muted-foreground">Plano atual</p>
+              <h2 className="mt-1 font-display text-2xl font-semibold">{usage.plan?.name ?? 'Degustação'}</h2>
             </div>
             <span className={`rounded-full px-3 py-1.5 text-xs font-medium ${usage.subscriptionExpired ? 'bg-destructive/10 text-destructive' : 'bg-background text-foreground'}`}>
               {usage.subscriptionExpired ? usage.isTrial ? 'Teste encerrado' : 'Assinatura suspensa' : usage.isTrial ? 'Teste grátis' : usage.subscription?.mercadoPagoStatus === 'cancelled' ? 'Renovação cancelada' : 'Ativo'}
@@ -104,15 +107,15 @@ export default async function PlanPage() {
           </div>
           <div className="rounded-2xl bg-background p-4 text-sm">
             <span className="font-semibold">Valor do plano: </span>
-            {usage.plan && Number(usage.plan.price) > 0 ? `${formatBRL(Number(usage.plan.price))} / ${billingPeriodLabels[usage.plan.billingPeriod]}` : 'A definir'}
+            {contractPlan && Number(contractPlan.price) > 0 ? `${formatBRL(Number(contractPlan.price))} / ${billingPeriodLabels[contractPlan.billingPeriod]}` : 'A definir'}
           </div>
           {usage.subscription?.mercadoPagoStatus === 'authorized' && <CancelMercadoPagoSubscriptionButton />}
         </section>
 
         <section className="flex flex-col gap-5 rounded-3xl border border-border bg-background p-5 sm:p-8">
           <div>
-            <h2 className="font-display text-xl font-semibold">Plano completo</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Um único plano com todos os recursos para administrar e divulgar sua loja.</p>
+            <h2 className="font-display text-xl font-semibold">Plano Pro</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Todos os recursos para administrar e divulgar sua loja, com 7 dias grátis na criação da conta.</p>
           </div>
           <ul className="grid gap-3 sm:grid-cols-2">
             {features.map((feature) => <li key={feature} className="flex items-start gap-2 text-sm"><Check className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" /><span>{feature}</span></li>)}
@@ -120,7 +123,7 @@ export default async function PlanPage() {
           <div className="border-t border-border pt-5">
             {!usage.subscriptionExpired ? (
               <p className="rounded-2xl bg-muted p-4 text-sm leading-relaxed text-muted-foreground">
-                {usage.isTrial ? 'A contratação ficará disponível ao fim dos 30 dias grátis. Não há cobrança durante o teste.' : 'Sua assinatura está ativa.'}
+                {usage.isTrial ? 'A contratação ficará disponível ao fim dos 7 dias grátis. Não há cobrança durante o teste.' : 'Sua assinatura está ativa.'}
               </p>
             ) : paymentPending ? (
               <MercadoPagoTransparentCheckout
@@ -128,8 +131,8 @@ export default async function PlanPage() {
                 initiallyAwaiting
                 publicKey={paymentSettings.publicKey}
                 amount={planPrice}
-                billingPeriod={usage.plan?.billingPeriod ?? 'monthly'}
-                planName={usage.plan?.name ?? 'Plano Ui Sales'}
+                billingPeriod={usage.subscription?.mercadoPagoBillingPeriod ?? contractPlan?.billingPeriod ?? 'monthly'}
+                planName={contractPlan?.name ?? 'Pro'}
                 payerEmail={user.email}
                 identificationType={user.documentType}
                 identificationNumber={user.documentNumber}
@@ -139,8 +142,8 @@ export default async function PlanPage() {
                 {...checkoutInitialProps}
                 publicKey={paymentSettings.publicKey}
                 amount={planPrice}
-                billingPeriod={usage.plan!.billingPeriod}
-                planName={usage.plan!.name}
+                billingPeriod={contractPlan!.billingPeriod}
+                planName={contractPlan!.name}
                 payerEmail={user.email}
                 identificationType={user.documentType}
                 identificationNumber={user.documentNumber}

@@ -1,7 +1,12 @@
 import 'server-only'
 import { and, eq, isNull, sql } from 'drizzle-orm'
 import { db } from '@/lib/db'
-import { subscriptions } from '@/lib/db/schema'
+import { plans, subscriptions } from '@/lib/db/schema'
+
+async function getActiveProPlanId() {
+  const [plan] = await db.select({ id: plans.id }).from(plans).where(and(eq(plans.slug, 'business'), eq(plans.isActive, true))).limit(1)
+  return plan?.id ?? null
+}
 
 export async function getMercadoPagoSubscriptionState(storeId: string) {
   const [row] = await db
@@ -119,6 +124,7 @@ export async function saveMercadoPagoPreapproval(input: {
       : providerStatus === 'rejected' ? 'past_due'
         : providerStatus === 'authorized' ? 'active' : 'pending'
   const active = terminalStatus === 'active'
+  const proPlanId = active ? await getActiveProPlanId() : null
   const statusGuard = ['pending', 'in_process'].includes(providerStatus)
     ? sql`${subscriptions.mercadoPagoStatus} IS DISTINCT FROM 'authorized' AND ${subscriptions.mercadoPagoStatus} IS DISTINCT FROM 'cancelled' AND ${subscriptions.mercadoPagoStatus} IS DISTINCT FROM 'paused'`
     : providerStatus === 'authorized'
@@ -141,6 +147,7 @@ export async function saveMercadoPagoPreapproval(input: {
       mercadoPagoPixQrCodeBase64: null,
       mercadoPagoPixExpiresAt: null,
       status: terminalStatus,
+      ...(proPlanId ? { planId: proPlanId } : {}),
       ...(active ? { startedAt: new Date(), expiresAt: retainsAccess ? input.currentPeriodEndsAt ?? null : null } : providerStatus === 'cancelled' ? { expiresAt: new Date() } : {}),
       updatedAt: new Date(),
     })
@@ -178,6 +185,7 @@ export async function saveMercadoPagoOneTimePayment(input: {
   const pending = providerStatus === 'pending' || providerStatus === 'in_process'
   const startedAt = input.approvedAt && !Number.isNaN(input.approvedAt.getTime()) ? input.approvedAt : new Date()
   const expiresAt = approved ? addBillingPeriod(startedAt, input.billingPeriod) : undefined
+  const proPlanId = approved ? await getActiveProPlanId() : null
   const statusGuard = approved ? sql`true` : sql`${subscriptions.mercadoPagoStatus} IS DISTINCT FROM 'approved'`
   const [updated] = await db
     .update(subscriptions)
@@ -195,6 +203,7 @@ export async function saveMercadoPagoOneTimePayment(input: {
       mercadoPagoPixQrCodeBase64: input.pixQrCodeBase64 ?? null,
       mercadoPagoPixExpiresAt: input.pixExpiresAt ?? null,
       status: approved ? 'active' : pending ? 'pending' : 'past_due',
+      ...(proPlanId ? { planId: proPlanId } : {}),
       ...(approved ? { startedAt, expiresAt } : {}),
       updatedAt: new Date(),
     })
@@ -220,6 +229,7 @@ export async function applyMercadoPagoAuthorizedPayment(input: { preapprovalId: 
   const providerStatus = input.status.toLowerCase()
   if (providerStatus === 'pending' || providerStatus === 'in_process') return null
   const approved = providerStatus === 'approved'
+  const proPlanId = approved ? await getActiveProPlanId() : null
   const failed = ['rejected', 'cancelled', 'charged_back'].includes(providerStatus)
   if (!approved && !failed) return null
 
@@ -227,6 +237,7 @@ export async function applyMercadoPagoAuthorizedPayment(input: { preapprovalId: 
     .update(subscriptions)
     .set({
       status: approved ? 'active' : 'past_due',
+      ...(proPlanId ? { planId: proPlanId } : {}),
       ...(approved ? { startedAt: new Date(), expiresAt: null } : {}),
       updatedAt: new Date(),
     })

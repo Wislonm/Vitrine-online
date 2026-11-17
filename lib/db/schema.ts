@@ -101,6 +101,7 @@ export const plans = pgTable('plans', {
   description: text('description'),
   productLimit: integer('product_limit').notNull(),
   price: numeric('price', { precision: 12, scale: 2 }).notNull().default('0'),
+  trialDays: integer('trial_days').notNull().default(0),
   billingPeriod: text('billing_period', { enum: ['monthly', 'quarterly', 'semiannual', 'yearly'] }).notNull().default('monthly'),
   features: jsonb('features').$type<PlanFeatures>().notNull().default({}),
   isActive: boolean('is_active').notNull().default(true),

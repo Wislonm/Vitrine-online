@@ -30,7 +30,7 @@ export default async function DashboardPage() {
         <section aria-labelledby="plan-title" className="flex flex-col gap-5 rounded-[2rem] bg-tile p-6 sm:p-8">
           <div className="flex items-center justify-between gap-3">
             <h2 id="plan-title" className="text-xl font-semibold">
-              {usage.plan?.name ?? 'Plano único'}
+              {usage.plan?.name ?? 'Pro'}
             </h2>
             <Link href="/painel/plano" className="text-sm underline-offset-4 hover:underline">
               Detalhes

@@ -6,7 +6,7 @@ export type Plan = typeof plans.$inferSelect
 
 export async function listPlans(options: { onlyActive?: boolean } = {}) {
   const rows = await db.select().from(plans).orderBy(plans.productLimit)
-  return options.onlyActive ? rows.filter((p) => p.isActive) : rows
+  return options.onlyActive ? rows.filter((p) => p.isActive && p.slug !== 'trial-default') : rows
 }
 
 export async function getPlanForStore(storeId: string) {
@@ -21,7 +21,7 @@ export async function getPlanForStore(storeId: string) {
 
 export async function updatePlan(
   planId: string,
-  data: Pick<Plan, 'name' | 'description' | 'productLimit' | 'price' | 'billingPeriod' | 'isActive'>,
+  data: Pick<Plan, 'name' | 'description' | 'productLimit' | 'trialDays' | 'price' | 'billingPeriod' | 'isActive'>,
 ) {
   await db
     .update(plans)

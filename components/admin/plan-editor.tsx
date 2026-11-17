@@ -19,6 +19,7 @@ type PlanEditorProps = {
     name: string
     description: string | null
     productLimit: number
+    trialDays: number
     price: string
     billingPeriod: 'monthly' | 'quarterly' | 'semiannual' | 'yearly'
     isActive: boolean
@@ -35,7 +36,7 @@ export function PlanEditor({ plan, featureLabels }: PlanEditorProps) {
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
-    const price = parsePriceInput(String(form.get('price') ?? ''))
+    const price = plan.slug === 'trial-default' ? 0 : parsePriceInput(String(form.get('price') ?? ''))
     if (price === null) {
       setErrors({ price: ['Informe um valor válido em reais.'] })
       return
@@ -46,8 +47,9 @@ export function PlanEditor({ plan, featureLabels }: PlanEditorProps) {
         name: String(form.get('name') ?? ''),
         description: String(form.get('description') ?? ''),
         productLimit: Number(form.get('productLimit')),
+        trialDays: plan.slug === 'trial-default' ? Number(form.get('trialDays')) : 0,
         price,
-        billingPeriod: String(form.get('billingPeriod')) as PlanEditorProps['plan']['billingPeriod'],
+        billingPeriod: plan.slug === 'trial-default' ? 'monthly' : String(form.get('billingPeriod')) as PlanEditorProps['plan']['billingPeriod'],
         isActive,
       })
       if (result.ok) {
@@ -73,19 +75,28 @@ export function PlanEditor({ plan, featureLabels }: PlanEditorProps) {
       <Field label="Descrição" htmlFor={`description-${plan.id}`} error={errors.description?.[0]}>
         <Input id={`description-${plan.id}`} name="description" defaultValue={plan.description ?? ''} className="bg-background" />
       </Field>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Valor do plano (R$)" htmlFor={`price-${plan.id}`} required error={errors.price?.[0]}>
-          <Input id={`price-${plan.id}`} name="price" inputMode="decimal" defaultValue={Number(plan.price).toFixed(2).replace('.', ',')} placeholder="0,00" className="bg-background" aria-invalid={!!errors.price} />
+      {plan.slug === 'trial-default' ? (
+        <Field label="Período de degustação (dias)" htmlFor={`trial-days-${plan.id}`} required error={errors.trialDays?.[0]}>
+          <Input id={`trial-days-${plan.id}`} name="trialDays" type="number" min={1} max={365} defaultValue={plan.trialDays} className="bg-background" aria-invalid={!!errors.trialDays} />
         </Field>
-        <Field label="Periodicidade" htmlFor={`period-${plan.id}`}>
-          <NativeSelect id={`period-${plan.id}`} name="billingPeriod" defaultValue={plan.billingPeriod} className="bg-background">
-            <option value="monthly">Mensal</option>
-            <option value="quarterly">Trimestral</option>
-            <option value="semiannual">Semestral</option>
-            <option value="yearly">Anual</option>
-          </NativeSelect>
-        </Field>
-      </div>
+      ) : (
+        <>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Valor do plano (R$)" htmlFor={`price-${plan.id}`} required error={errors.price?.[0]}>
+              <Input id={`price-${plan.id}`} name="price" inputMode="decimal" defaultValue={Number(plan.price).toFixed(2).replace('.', ',')} placeholder="0,00" className="bg-background" aria-invalid={!!errors.price} />
+            </Field>
+            <Field label="Periodicidade" htmlFor={`period-${plan.id}`}>
+              <NativeSelect id={`period-${plan.id}`} name="billingPeriod" defaultValue={plan.billingPeriod} className="bg-background">
+                <option value="monthly">Mensal</option>
+                <option value="quarterly">Trimestral</option>
+                <option value="semiannual">Semestral</option>
+                <option value="yearly">Anual</option>
+              </NativeSelect>
+            </Field>
+          </div>
+          <input type="hidden" name="trialDays" value="0" />
+        </>
+      )}
       <Field label="Limite de produtos" htmlFor={`limit-${plan.id}`} error={errors.productLimit?.[0]}>
         <Input
           id={`limit-${plan.id}`}
@@ -98,10 +109,14 @@ export function PlanEditor({ plan, featureLabels }: PlanEditorProps) {
         />
       </Field>
 
-      <label className="flex cursor-pointer items-center justify-between gap-4 rounded-full bg-background px-5 py-3">
-        <span className="text-sm font-medium">Plano disponível</span>
-        <Switch checked={isActive} onCheckedChange={setIsActive} aria-label="Plano disponível" />
-      </label>
+      {plan.slug === 'trial-default' ? (
+        <p className="rounded-2xl bg-background p-4 text-sm leading-relaxed text-muted-foreground">Plano interno aplicado automaticamente a novas contas. Não aparece como opção de compra.</p>
+      ) : (
+        <label className="flex cursor-pointer items-center justify-between gap-4 rounded-full bg-background px-5 py-3">
+          <span className="text-sm font-medium">Plano disponível</span>
+          <Switch checked={isActive} onCheckedChange={setIsActive} aria-label="Plano disponível" />
+        </label>
+      )}
 
       <div>
         <p className="mb-2 px-1 text-sm font-medium">Recursos habilitados</p>

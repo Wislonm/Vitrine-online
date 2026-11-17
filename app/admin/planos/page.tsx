@@ -15,13 +15,14 @@ const featureLabels = {
 }
 
 export default async function AdminPlansPage() {
-  const plans = await listPlans({ onlyActive: true })
+  const allPlans = await listPlans()
+  const plans = allPlans.filter((plan) => plan.isActive || plan.slug === 'trial-default')
 
   return (
     <>
       <h1 className="mb-2 text-3xl font-semibold sm:text-4xl">Planos</h1>
       <p className="mb-8 max-w-xl text-muted-foreground">
-        Configure o valor e a periodicidade que serão usados na próxima etapa de integração do checkout Mercado Pago.
+        Configure os 7 dias do plano de degustação e o valor e a periodicidade do Pro. O plano de degustação é interno e não aparece como opção de compra.
       </p>
       <div className="grid gap-4 md:grid-cols-2">
         {plans.map((plan) => (
@@ -34,6 +35,7 @@ export default async function AdminPlansPage() {
               name: plan.name,
               description: plan.description,
               productLimit: plan.productLimit,
+              trialDays: plan.trialDays,
               price: plan.price,
               billingPeriod: plan.billingPeriod as 'monthly' | 'quarterly' | 'semiannual' | 'yearly',
               isActive: plan.isActive,

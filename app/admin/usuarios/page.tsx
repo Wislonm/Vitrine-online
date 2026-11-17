@@ -39,6 +39,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
           storeName: account.storeName,
           storeSlug: account.storeSlug,
           planId: account.planId,
+          planName: account.planName,
           productLimit: account.productLimit,
           productCount: account.productCount,
         }))}

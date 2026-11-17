@@ -54,8 +54,8 @@ export async function createStoreWithDefaults(input: {
   documentNumber: string
 }) {
   return db.transaction(async (tx) => {
-    const [trialPlan] = await tx.select().from(plans).where(and(eq(plans.slug, 'business'), eq(plans.isActive, true))).limit(1)
-    if (!trialPlan) throw new Error('Plano único não encontrado ou inativo')
+    const [trialPlan] = await tx.select().from(plans).where(eq(plans.slug, 'trial-default')).limit(1)
+    if (!trialPlan || trialPlan.trialDays < 1) throw new Error('Plano padrão de degustação não está configurado')
 
     const [store] = await tx
       .insert(stores)
@@ -71,7 +71,7 @@ export async function createStoreWithDefaults(input: {
       .returning()
 
     await tx.insert(storeSettings).values({ storeId: store.id, displayName: input.name })
-    const trialEndsAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+    const trialEndsAt = new Date(Date.now() + trialPlan.trialDays * 24 * 60 * 60 * 1000)
     await tx.insert(subscriptions).values({ storeId: store.id, planId: trialPlan.id, status: 'trial', expiresAt: trialEndsAt })
     return store
   })

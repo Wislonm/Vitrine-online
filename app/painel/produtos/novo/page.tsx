@@ -20,7 +20,7 @@ export default async function NewProductPage() {
         <div className="flex flex-col items-start gap-4 rounded-[2rem] bg-muted p-8">
           <p className="font-display text-xl font-semibold">Você atingiu o limite de {usage.limit} produtos</p>
           <p className="text-sm text-muted-foreground">
-            Exclua um produto existente para liberar espaço no limite do plano único.
+            Exclua um produto existente para liberar espaço no limite do plano Pro.
           </p>
           <div className="flex flex-wrap gap-3">
             <Link href="/painel/produtos" className={buttonVariants()}>

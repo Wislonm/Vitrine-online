@@ -17,7 +17,7 @@ export async function changeStorePlanAction(storeId: string, planId: string): Pr
       return { ok: false, error: 'Dados inválidos' }
     }
     const store = await getStoreById(storeId)
-    const plan = (await listPlans()).find((p) => p.id === planId)
+    const plan = (await listPlans({ onlyActive: true })).find((p) => p.id === planId)
     if (!store || !plan) return { ok: false, error: 'Loja ou plano não encontrado' }
 
     await setStorePlan(storeId, planId)
@@ -72,12 +72,17 @@ export async function updatePlanAction(raw: unknown): Promise<ActionResult> {
       return { ok: false, error: 'Revise os campos', fieldErrors: zodFieldErrors(parsed.error) }
     }
     const { planId, ...parsedData } = parsed.data
+    const existingPlan = (await listPlans()).find((plan) => plan.id === planId)
+    if (!existingPlan) return { ok: false, error: 'Plano não encontrado' }
+    if (existingPlan.slug === 'trial-default' && parsedData.trialDays < 1) {
+      return { ok: false, error: 'Informe ao menos 1 dia de degustação', fieldErrors: { trialDays: ['Informe ao menos 1 dia'] } }
+    }
     const data = { ...parsedData, price: parsedData.price.toFixed(2) }
     await updatePlan(planId, data)
     await recordAdminAction({
       adminUserId: admin.id,
       action: 'update_plan',
-      details: { planId, productLimit: data.productLimit, price: data.price, billingPeriod: data.billingPeriod, isActive: data.isActive },
+      details: { planId, productLimit: data.productLimit, trialDays: data.trialDays, price: data.price, billingPeriod: data.billingPeriod, isActive: data.isActive },
     })
     revalidatePath('/admin', 'layout')
     revalidatePath('/painel/plano')
