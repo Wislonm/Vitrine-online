@@ -76,7 +76,16 @@ const periodLabels = {
   yearly: 'ano',
 }
 
+const selectablePeriodLabels = {
+  monthly: 'Mensal',
+  semiannual: 'Semestral',
+  yearly: 'Anual',
+}
+
+type CheckoutPeriodOption = { period: 'monthly' | 'semiannual' | 'yearly'; amount: number }
+
 export function MercadoPagoTransparentCheckout({
+  periodOptions,
   publicKey,
   amount,
   billingPeriod,
@@ -93,6 +102,7 @@ export function MercadoPagoTransparentCheckout({
   initialPixExpired = false,
   initialCheckoutMode = 'one_time',
 }: {
+  periodOptions: CheckoutPeriodOption[]
   publicKey: string
   amount: number
   billingPeriod: keyof typeof periodLabels
@@ -117,6 +127,8 @@ export function MercadoPagoTransparentCheckout({
   const [consent, setConsent] = useState(false)
   const [recurring, setRecurring] = useState(initialCheckoutMode === 'recurring' && initialPaymentMethod === 'card')
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'pix'>(initialPaymentMethod)
+  const [selectedPeriod, setSelectedPeriod] = useState<keyof typeof periodLabels>(billingPeriod)
+  const checkoutAmount = periodOptions.find((option) => option.period === selectedPeriod)?.amount ?? amount
   const [submitting, setSubmitting] = useState(false)
   const [awaiting, setAwaiting] = useState(initiallyAwaiting)
   const [completed, setCompleted] = useState(false)
@@ -165,7 +177,7 @@ export function MercadoPagoTransparentCheckout({
       const response = await fetch('/api/checkout/mercado-pago/payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paymentMethod: 'pix', legalTermsAccepted: true }),
+        body: JSON.stringify({ paymentMethod: 'pix', billingPeriod: selectedPeriod, legalTermsAccepted: true }),
       })
       await handlePaymentResponse(response)
     } catch {
@@ -185,7 +197,7 @@ export function MercadoPagoTransparentCheckout({
     const mercadoPago = new window.MercadoPago(publicKey, { locale: 'pt-BR' })
     let cardForm: MercadoPagoCardForm
     cardForm = mercadoPago.cardForm({
-      amount: amount.toFixed(2),
+      amount: checkoutAmount.toFixed(2),
       iframe: true,
       form: {
         id: 'mp-subscription-card-form',
@@ -232,9 +244,10 @@ export function MercadoPagoTransparentCheckout({
           try {
             const endpoint = recurringMode ? '/api/checkout/mercado-pago' : '/api/checkout/mercado-pago/payment'
             const body = recurringMode
-              ? { cardToken: cardData.token, legalTermsAccepted: true, recurringAccepted: true }
+              ? { cardToken: cardData.token, billingPeriod: selectedPeriod, legalTermsAccepted: true, recurringAccepted: true }
               : {
                   paymentMethod: 'card',
+                  billingPeriod: selectedPeriod,
                   legalTermsAccepted: true,
                   cardToken: cardData.token,
                   paymentMethodId: cardData.paymentMethodId,
@@ -266,7 +279,7 @@ export function MercadoPagoTransparentCheckout({
       cardFormRef.current = null
       setFormReady(false)
     }
-  }, [amount, awaiting, completed, paymentMethod, publicKey, recurring, router, sdkReady])
+  }, [checkoutAmount, selectedPeriod, awaiting, completed, paymentMethod, publicKey, recurring, router, sdkReady])
 
   useEffect(() => {
     if (!checkoutStatus) return
@@ -306,6 +319,13 @@ export function MercadoPagoTransparentCheckout({
     if (method === 'pix' && !completed) setFormReady(false)
   }
 
+  function choosePeriod(period: CheckoutPeriodOption['period']) {
+    setSelectedPeriod(period)
+    setConsent(false)
+    consentRef.current = false
+    setError(null)
+  }
+
   function chooseRecurring(enabled: boolean) {
     setRecurring(enabled)
     setConsent(false)
@@ -328,7 +348,7 @@ export function MercadoPagoTransparentCheckout({
       {paymentMethod === 'card' && !awaiting && !completed && <Script src="https://sdk.mercadopago.com/js/v2" strategy="afterInteractive" onReady={() => setSdkReady(true)} onError={() => setError('Não foi possível carregar o SDK seguro do Mercado Pago.')} />}
       <div>
         <h2 id="mp-checkout-title" className="font-display text-xl font-semibold">Pagamento seguro</h2>
-        <p className="mt-1 text-sm text-muted-foreground">{planName} · {formatBRL(amount)} / {periodLabels[billingPeriod]}</p>
+        <p className="mt-1 text-sm text-muted-foreground">{planName} · {formatBRL(checkoutAmount)} / {periodLabels[selectedPeriod]}</p>
       </div>
 
       {completed ? (
@@ -362,6 +382,21 @@ export function MercadoPagoTransparentCheckout({
             <button type="button" aria-pressed={paymentMethod === 'card'} onClick={() => choosePaymentMethod('card')} className={`rounded-full px-3 py-2.5 text-sm font-medium ${paymentMethod === 'card' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}>Cartão</button>
             <button type="button" aria-pressed={paymentMethod === 'pix'} onClick={() => choosePaymentMethod('pix')} className={`rounded-full px-3 py-2.5 text-sm font-medium ${paymentMethod === 'pix' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}>Pix</button>
           </div>
+
+          <Field label="Período de assinatura" htmlFor="mp-billing-period">
+            <select
+              id="mp-billing-period"
+              value={selectedPeriod}
+              onChange={(event) => choosePeriod(event.target.value as CheckoutPeriodOption['period'])}
+              className="h-12 w-full rounded-full bg-muted px-5 text-sm"
+            >
+              {periodOptions.map((option) => (
+                <option key={option.period} value={option.period}>
+                  {selectablePeriodLabels[option.period]} — {formatBRL(option.amount)} / {periodLabels[option.period]}
+                </option>
+              ))}
+            </select>
+          </Field>
 
           <label className="flex cursor-pointer items-start gap-3 rounded-2xl bg-muted p-4 text-sm leading-relaxed">
             <input type="checkbox" checked={recurring} disabled={paymentMethod === 'pix'} onChange={(event) => chooseRecurring(event.target.checked)} className="mt-1 size-4 shrink-0 accent-primary" />
@@ -407,27 +442,27 @@ export function MercadoPagoTransparentCheckout({
               </div>
               <label className="flex cursor-pointer items-start gap-3 rounded-2xl bg-muted p-4 text-sm leading-relaxed">
                 <input type="checkbox" checked={consent} onChange={(event) => onConsentChange(event.target.checked)} className="mt-1 size-4 shrink-0 accent-primary" />
-                <span>Li e aceito os <Link href="/termos" target="_blank" className="underline underline-offset-4">Termos de Uso</Link> e a <Link href="/privacidade" target="_blank" className="underline underline-offset-4">Política de Privacidade</Link>. {recurring ? `Autorizo a cobrança recorrente de ${formatBRL(amount)} por ${periodLabels[billingPeriod]}${firstRenewalDateLabel ? `, com a primeira cobrança em ${firstRenewalDateLabel}` : ', com cobrança na contratação'}. Posso cancelar a renovação pelo painel.` : `Confirmo o pagamento único de ${formatBRL(amount)}, cobrado agora pelo período de ${periodLabels[billingPeriod]}, sem renovação automática.`}
+                <span>Li e aceito os <Link href="/termos" target="_blank" className="underline underline-offset-4">Termos de Uso</Link> e a <Link href="/privacidade" target="_blank" className="underline underline-offset-4">Política de Privacidade</Link>. {recurring ? `Autorizo a cobrança recorrente de ${formatBRL(checkoutAmount)} por ${periodLabels[selectedPeriod]}${firstRenewalDateLabel ? `, com a primeira cobrança em ${firstRenewalDateLabel}` : ', com cobrança na contratação'}. Posso cancelar a renovação pelo painel.` : `Confirmo o pagamento único de ${formatBRL(checkoutAmount)}, cobrado agora pelo período de ${periodLabels[selectedPeriod]}, sem renovação automática.`}
                 </span>
               </label>
               {error && <p role="alert" className="rounded-2xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</p>}
               <p className="flex items-center gap-2 text-xs text-muted-foreground"><LockKeyhole className="size-4" aria-hidden="true" />Os dados do cartão são tokenizados pelo Mercado Pago e não são armazenados pela Minha Vitrine.</p>
               <Button type="submit" size="lg" disabled={!formReady || !consent || submitting}>
                 {submitting || !formReady ? <Loader2 className="animate-spin" aria-hidden="true" /> : <CreditCard aria-hidden="true" />}
-                {submitting ? 'Processando...' : !formReady ? 'Carregando pagamento seguro...' : recurring ? 'Autorizar renovação automática' : `Pagar ${formatBRL(amount)}`}
+                {submitting ? 'Processando...' : !formReady ? 'Carregando pagamento seguro...' : recurring ? 'Autorizar renovação automática' : `Pagar ${formatBRL(checkoutAmount)}`}
               </Button>
             </form>
           ) : (
             <div className="flex flex-col gap-4">
-              <p className="rounded-2xl bg-muted p-4 text-sm leading-relaxed text-muted-foreground">Pagamento Pix único de {formatBRL(amount)}. O acesso Pro começa após a confirmação e fica ativo por {periodLabels[billingPeriod]}, sem renovação automática.</p>
+              <p className="rounded-2xl bg-muted p-4 text-sm leading-relaxed text-muted-foreground">Pagamento Pix único de {formatBRL(checkoutAmount)}. O acesso Pro começa após a confirmação e fica ativo por {periodLabels[selectedPeriod]}, sem renovação automática.</p>
               <label className="flex cursor-pointer items-start gap-3 rounded-2xl bg-muted p-4 text-sm leading-relaxed">
                 <input type="checkbox" checked={consent} onChange={(event) => onConsentChange(event.target.checked)} className="mt-1 size-4 shrink-0 accent-primary" />
-                <span>Li e aceito os <Link href="/termos" target="_blank" className="underline underline-offset-4">Termos de Uso</Link> e a <Link href="/privacidade" target="_blank" className="underline underline-offset-4">Política de Privacidade</Link>. Confirmo o pagamento único de {formatBRL(amount)} pelo período de {periodLabels[billingPeriod]}, sem renovação automática.</span>
+                <span>Li e aceito os <Link href="/termos" target="_blank" className="underline underline-offset-4">Termos de Uso</Link> e a <Link href="/privacidade" target="_blank" className="underline underline-offset-4">Política de Privacidade</Link>. Confirmo o pagamento único de {formatBRL(checkoutAmount)} pelo período de {periodLabels[selectedPeriod]}, sem renovação automática.</span>
               </label>
               {error && <p role="alert" className="rounded-2xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</p>}
               <Button type="button" size="lg" disabled={!consent || submitting} onClick={submitPixPayment}>
                 {submitting ? <Loader2 className="animate-spin" aria-hidden="true" /> : <QrCode aria-hidden="true" />}
-                {submitting ? 'Gerando Pix...' : pixExpired ? 'Gerar novo Pix' : `Gerar Pix de ${formatBRL(amount)}`}
+                {submitting ? 'Gerando Pix...' : pixExpired ? 'Gerar novo Pix' : `Gerar Pix de ${formatBRL(checkoutAmount)}`}
               </Button>
             </div>
           )}

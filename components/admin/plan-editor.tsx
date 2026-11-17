@@ -7,7 +7,6 @@ import { updatePlanAction } from '@/app/actions/admin'
 import { Button } from '@/components/ui/button'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { NativeSelect } from '@/components/ui/native-select'
 import { Switch } from '@/components/ui/switch'
 import { parsePriceInput } from '@/lib/format'
 import type { FieldErrors } from '@/lib/validators'
@@ -21,7 +20,9 @@ type PlanEditorProps = {
     productLimit: number
     trialDays: number
     price: string
-    billingPeriod: 'monthly' | 'quarterly' | 'semiannual' | 'yearly'
+    monthlyPrice: string | null
+    semiannualPrice: string | null
+    annualPrice: string | null
     isActive: boolean
     features: Record<string, boolean | undefined>
   }
@@ -36,20 +37,31 @@ export function PlanEditor({ plan, featureLabels }: PlanEditorProps) {
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
-    const price = plan.slug === 'trial-default' ? 0 : parsePriceInput(String(form.get('price') ?? ''))
-    if (price === null) {
-      setErrors({ price: ['Informe um valor válido em reais.'] })
+    const isTrial = plan.slug === 'trial-default'
+    const monthlyPrice = isTrial ? 0 : parsePriceInput(String(form.get('monthlyPrice') ?? ''))
+    const semiannualRaw = String(form.get('semiannualPrice') ?? '').trim()
+    const annualRaw = String(form.get('annualPrice') ?? '').trim()
+    const semiannualPrice = isTrial || !semiannualRaw ? null : parsePriceInput(semiannualRaw)
+    const annualPrice = isTrial || !annualRaw ? null : parsePriceInput(annualRaw)
+    const priceErrors: FieldErrors = {}
+    if (monthlyPrice === null) priceErrors.monthlyPrice = ['Informe um valor mensal válido em reais.']
+    if (semiannualRaw && semiannualPrice === null) priceErrors.semiannualPrice = ['Informe um valor semestral válido em reais.']
+    if (annualRaw && annualPrice === null) priceErrors.annualPrice = ['Informe um valor anual válido em reais.']
+    if (Object.keys(priceErrors).length > 0) {
+      setErrors(priceErrors)
       return
     }
+
     startTransition(async () => {
       const result = await updatePlanAction({
         planId: plan.id,
         name: String(form.get('name') ?? ''),
         description: String(form.get('description') ?? ''),
         productLimit: Number(form.get('productLimit')),
-        trialDays: plan.slug === 'trial-default' ? Number(form.get('trialDays')) : 0,
-        price,
-        billingPeriod: plan.slug === 'trial-default' ? 'monthly' : String(form.get('billingPeriod')) as PlanEditorProps['plan']['billingPeriod'],
+        trialDays: isTrial ? Number(form.get('trialDays')) : 0,
+        monthlyPrice,
+        semiannualPrice,
+        annualPrice,
         isActive,
       })
       if (result.ok) {
@@ -81,17 +93,15 @@ export function PlanEditor({ plan, featureLabels }: PlanEditorProps) {
         </Field>
       ) : (
         <>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Valor do plano (R$)" htmlFor={`price-${plan.id}`} required error={errors.price?.[0]}>
-              <Input id={`price-${plan.id}`} name="price" inputMode="decimal" defaultValue={Number(plan.price).toFixed(2).replace('.', ',')} placeholder="0,00" className="bg-background" aria-invalid={!!errors.price} />
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Field label="Mensal (R$)" htmlFor={`monthly-price-${plan.id}`} required error={errors.monthlyPrice?.[0]}>
+              <Input id={`monthly-price-${plan.id}`} name="monthlyPrice" inputMode="decimal" defaultValue={Number(plan.monthlyPrice ?? plan.price).toFixed(2).replace('.', ',')} placeholder="0,00" className="bg-background" aria-invalid={!!errors.monthlyPrice} />
             </Field>
-            <Field label="Periodicidade" htmlFor={`period-${plan.id}`}>
-              <NativeSelect id={`period-${plan.id}`} name="billingPeriod" defaultValue={plan.billingPeriod} className="bg-background">
-                <option value="monthly">Mensal</option>
-                <option value="quarterly">Trimestral</option>
-                <option value="semiannual">Semestral</option>
-                <option value="yearly">Anual</option>
-              </NativeSelect>
+            <Field label="Semestral (R$)" htmlFor={`semiannual-price-${plan.id}`} hint="Deixe vazio para não oferecer." error={errors.semiannualPrice?.[0]}>
+              <Input id={`semiannual-price-${plan.id}`} name="semiannualPrice" inputMode="decimal" defaultValue={plan.semiannualPrice === null ? '' : Number(plan.semiannualPrice).toFixed(2).replace('.', ',')} placeholder="0,00" className="bg-background" aria-invalid={!!errors.semiannualPrice} />
+            </Field>
+            <Field label="Anual (R$)" htmlFor={`annual-price-${plan.id}`} hint="Deixe vazio para não oferecer." error={errors.annualPrice?.[0]}>
+              <Input id={`annual-price-${plan.id}`} name="annualPrice" inputMode="decimal" defaultValue={plan.annualPrice === null ? '' : Number(plan.annualPrice).toFixed(2).replace('.', ',')} placeholder="0,00" className="bg-background" aria-invalid={!!errors.annualPrice} />
             </Field>
           </div>
           <input type="hidden" name="trialDays" value="0" />

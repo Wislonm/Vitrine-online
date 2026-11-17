@@ -7,19 +7,23 @@ import { user as userTable } from '@/lib/db/schema'
 import { LEGAL_DOCUMENT_VERSION } from '@/lib/legal'
 import { getMercadoPagoCredentialsForServer } from '@/lib/repositories/payment-settings'
 import { claimMercadoPagoCheckout, getMercadoPagoSubscriptionState, releaseMercadoPagoCheckout, saveMercadoPagoOneTimePayment } from '@/lib/repositories/mercadopago-subscriptions'
-import { listPlans } from '@/lib/repositories/plans'
+import { getPlanPrice, listPlans } from '@/lib/repositories/plans'
 import { getSellerContextOrThrow, UnauthorizedError } from '@/lib/session'
 import { getBaseUrl } from '@/lib/url'
 
 export const runtime = 'nodejs'
 
+const checkoutBillingPeriodSchema = z.enum(['monthly', 'semiannual', 'yearly'])
+
 const pixPaymentSchema = z.object({
   paymentMethod: z.literal('pix'),
+  billingPeriod: checkoutBillingPeriodSchema,
   legalTermsAccepted: z.literal(true),
 })
 
 const cardPaymentSchema = z.object({
   paymentMethod: z.literal('card'),
+  billingPeriod: checkoutBillingPeriodSchema,
   legalTermsAccepted: z.literal(true),
   cardToken: z.string().trim().min(1).max(2048),
   paymentMethodId: z.string().trim().min(1).max(80),
@@ -65,8 +69,9 @@ export async function POST(request: NextRequest) {
 
     const activePlans = await listPlans({ onlyActive: true })
     const plan = activePlans.find((activePlan) => activePlan.slug === 'business') ?? null
-    if (!plan || Number(plan.price) <= 0) {
-      return NextResponse.json({ error: 'O plano ainda não tem um valor de cobrança configurado.' }, { status: 409 })
+    const planPrice = plan ? getPlanPrice(plan, parsed.data.billingPeriod) : null
+    if (!plan || planPrice === null || planPrice <= 0) {
+      return NextResponse.json({ error: 'O valor desta periodicidade ainda não foi configurado no plano Pro.' }, { status: 409 })
     }
 
     const credentials = await getMercadoPagoCredentialsForServer()
@@ -106,7 +111,7 @@ export async function POST(request: NextRequest) {
                 externalReference: currentState.externalReference ?? '',
                 status: 'approved',
                 paymentMethod: 'pix',
-                amount: currentState.amount ?? Number(plan.price).toFixed(2),
+                amount: currentState.amount ?? Number(plan.monthlyPrice ?? plan.price).toFixed(2),
                 billingPeriod: currentState.billingPeriod ?? plan.billingPeriod,
                 approvedAt: oldPayment.date_approved ? new Date(oldPayment.date_approved) : null,
               })
@@ -123,12 +128,12 @@ export async function POST(request: NextRequest) {
     }
 
     const externalReference = randomUUID()
-    const amount = Number(plan.price).toFixed(2)
+    const amount = planPrice.toFixed(2)
     const claimed = await claimMercadoPagoCheckout({
       storeId: context.store.id,
       externalReference,
       amount,
-      billingPeriod: plan.billingPeriod,
+      billingPeriod: parsed.data.billingPeriod,
       checkoutMode: 'one_time',
       paymentMethod: parsed.data.paymentMethod,
       consentVersion: LEGAL_DOCUMENT_VERSION,
@@ -154,8 +159,8 @@ export async function POST(request: NextRequest) {
     const payerLastName = payerLastNameParts.join(' ') || payerFirstName
 
     const paymentPayload: Record<string, unknown> = {
-      transaction_amount: Number(plan.price),
-      description: `${plan.name} - ${plan.billingPeriod}`,
+      transaction_amount: planPrice,
+      description: `${plan.name} - ${parsed.data.billingPeriod}`,
       payment_method_id: parsed.data.paymentMethod === 'pix' ? 'pix' : parsed.data.paymentMethodId,
       external_reference: externalReference,
       notification_url: `${baseUrl}/api/webhooks/mercado-pago?type=payment`,
@@ -234,7 +239,7 @@ export async function POST(request: NextRequest) {
       status: result.status,
       paymentMethod: parsed.data.paymentMethod,
       amount,
-      billingPeriod: plan.billingPeriod,
+      billingPeriod: parsed.data.billingPeriod,
       pixQrCode: transaction?.qr_code ?? null,
       pixQrCodeBase64: transaction?.qr_code_base64 ?? null,
       pixExpiresAt: pixExpiresAt && !Number.isNaN(pixExpiresAt.getTime()) ? pixExpiresAt : null,

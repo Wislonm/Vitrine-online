@@ -3,6 +3,23 @@ import { db } from '@/lib/db'
 import { plans, subscriptions } from '@/lib/db/schema'
 
 export type Plan = typeof plans.$inferSelect
+export type CheckoutBillingPeriod = 'monthly' | 'semiannual' | 'yearly'
+
+export function getPlanPrice(plan: Plan, period: CheckoutBillingPeriod) {
+  const value = period === 'monthly'
+    ? plan.monthlyPrice ?? plan.price
+    : period === 'semiannual'
+      ? plan.semiannualPrice
+      : plan.annualPrice
+  return value === null ? null : Number(value)
+}
+
+export function getPlanPeriodPrices(plan: Plan) {
+  return (['monthly', 'semiannual', 'yearly'] as const).flatMap((period) => {
+    const amount = getPlanPrice(plan, period)
+    return amount !== null && amount > 0 ? [{ period, amount }] : []
+  })
+}
 
 export async function listPlans(options: { onlyActive?: boolean } = {}) {
   const rows = await db.select().from(plans).orderBy(plans.productLimit)
@@ -21,7 +38,7 @@ export async function getPlanForStore(storeId: string) {
 
 export async function updatePlan(
   planId: string,
-  data: Pick<Plan, 'name' | 'description' | 'productLimit' | 'trialDays' | 'price' | 'billingPeriod' | 'isActive'>,
+  data: Pick<Plan, 'name' | 'description' | 'productLimit' | 'trialDays' | 'price' | 'monthlyPrice' | 'semiannualPrice' | 'annualPrice' | 'billingPeriod' | 'isActive'>,
 ) {
   await db
     .update(plans)

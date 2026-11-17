@@ -205,12 +205,30 @@ export async function updatePlanAction(raw: unknown): Promise<ActionResult> {
     if (existingPlan.slug === 'trial-default' && parsedData.trialDays < 1) {
       return { ok: false, error: 'Informe ao menos 1 dia de degustação', fieldErrors: { trialDays: ['Informe ao menos 1 dia'] } }
     }
-    const data = { ...parsedData, price: parsedData.price.toFixed(2) }
+    if (existingPlan.slug !== 'trial-default' && parsedData.monthlyPrice <= 0) {
+      return { ok: false, error: 'Informe um preço mensal maior que zero para o plano Pro.', fieldErrors: { monthlyPrice: ['Informe um preço mensal maior que zero'] } }
+    }
+    const data = {
+      ...parsedData,
+      price: parsedData.monthlyPrice.toFixed(2),
+      monthlyPrice: parsedData.monthlyPrice.toFixed(2),
+      semiannualPrice: parsedData.semiannualPrice?.toFixed(2) ?? null,
+      annualPrice: parsedData.annualPrice?.toFixed(2) ?? null,
+      billingPeriod: 'monthly' as const,
+    }
     await updatePlan(planId, data)
     await recordAdminAction({
       adminUserId: admin.id,
       action: 'update_plan',
-      details: { planId, productLimit: data.productLimit, trialDays: data.trialDays, price: data.price, billingPeriod: data.billingPeriod, isActive: data.isActive },
+      details: {
+        planId,
+        productLimit: data.productLimit,
+        trialDays: data.trialDays,
+        monthlyPrice: data.monthlyPrice,
+        semiannualPrice: data.semiannualPrice,
+        annualPrice: data.annualPrice,
+        isActive: data.isActive,
+      },
     })
     revalidatePath('/admin', 'layout')
     revalidatePath('/painel/plano')
