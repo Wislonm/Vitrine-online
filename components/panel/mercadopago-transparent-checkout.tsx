@@ -404,7 +404,7 @@ export function MercadoPagoTransparentCheckout({
                 </span>
               </label>
               {error && <p role="alert" className="rounded-2xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</p>}
-              <p className="flex items-center gap-2 text-xs text-muted-foreground"><LockKeyhole className="size-4" aria-hidden="true" />Os dados do cartão são tokenizados pelo Mercado Pago e não são armazenados pela Ui Sales.</p>
+              <p className="flex items-center gap-2 text-xs text-muted-foreground"><LockKeyhole className="size-4" aria-hidden="true" />Os dados do cartão são tokenizados pelo Mercado Pago e não são armazenados pela Minha Vitrine.</p>
               <Button type="submit" size="lg" disabled={!formReady || !consent || submitting}>
                 {submitting || !formReady ? <Loader2 className="animate-spin" aria-hidden="true" /> : <CreditCard aria-hidden="true" />}
                 {submitting ? 'Processando...' : !formReady ? 'Carregando pagamento seguro...' : recurring ? 'Autorizar renovação automática' : `Pagar ${formatBRL(amount)}`}

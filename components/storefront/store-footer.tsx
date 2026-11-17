@@ -137,7 +137,7 @@ export function StoreFooter({ name, description, whatsapp, phone, email, address
       )}
 
       <p className="mt-10 border-t border-primary-foreground/15 pt-5 text-xs text-primary-foreground/50">
-        Vitrine criada com Ui Sales
+        Vitrine criada com Minha Vitrine
       </p>
     </footer>
   )

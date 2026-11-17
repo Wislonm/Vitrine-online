@@ -5,7 +5,7 @@ import { getStoreSettings } from '@/lib/repositories/stores'
 import { getStoreThemeStyle } from '@/lib/store-themes'
 
 export const metadata: Metadata = {
-  title: { default: 'Painel', template: '%s | Painel Ui Sales' },
+  title: { default: 'Painel', template: '%s | Painel Minha Vitrine' },
   robots: { index: false, follow: false },
 }
 

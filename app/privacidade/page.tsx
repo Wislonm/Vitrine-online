@@ -3,22 +3,22 @@ import { LegalDocument } from '@/components/legal/legal-document'
 
 export const metadata: Metadata = {
   title: 'Política de Privacidade',
-  description: 'Rascunho da Política de Privacidade da plataforma Ui Sales, com informações sobre tratamento de dados pessoais.',
+  description: 'Rascunho da Política de Privacidade da plataforma Minha Vitrine, com informações sobre tratamento de dados pessoais.',
 }
 
 const sections = [
   {
     title: '1. Controlador e escopo deste documento',
     paragraphs: [
-      'A Ui Sales é a marca da plataforma de vitrines digitais e gestão de pedidos. A razão social ou nome civil do controlador, seu CNPJ ou CPF, endereço e canal oficial para solicitações de privacidade ainda precisam ser informados. Por isso, este texto é um rascunho incompleto e não deve ser tratado como a versão final da política.',
-      'Esta política descreve, em linhas gerais, dados tratados ao criar e administrar uma conta na Ui Sales, usar uma vitrine pública e enviar pedidos pelo fluxo de WhatsApp. Ela deve ser revisada para refletir a identidade legal do controlador, os fornecedores contratados e os prazos efetivos de retenção antes da publicação definitiva.',
+      'A Minha Vitrine é a marca da plataforma de vitrines digitais e gestão de pedidos. A razão social ou nome civil do controlador, seu CNPJ ou CPF, endereço e canal oficial para solicitações de privacidade ainda precisam ser informados. Por isso, este texto é um rascunho incompleto e não deve ser tratado como a versão final da política.',
+      'Esta política descreve, em linhas gerais, dados tratados ao criar e administrar uma conta na Minha Vitrine, usar uma vitrine pública e enviar pedidos pelo fluxo de WhatsApp. Ela deve ser revisada para refletir a identidade legal do controlador, os fornecedores contratados e os prazos efetivos de retenção antes da publicação definitiva.',
     ],
   },
   {
-    title: '2. Papéis da Ui Sales e das lojas',
+    title: '2. Papéis da Minha Vitrine e das lojas',
     paragraphs: [
-      'A Ui Sales trata dados de cadastro, autenticação, segurança e administração da plataforma para prestar o serviço. Quando uma loja usa a plataforma para publicar produtos e receber pedidos, o lojista define a finalidade comercial e os dados solicitados de seus clientes; em relação a esse uso, o lojista pode ser o controlador e a Ui Sales pode atuar como operadora, conforme as circunstâncias e instruções aplicáveis.',
-      'O lojista é responsável por fornecer aos visitantes informações adequadas sobre seu próprio tratamento de dados e por atender solicitações relacionadas ao pedido e à relação de consumo. Esta política da Ui Sales não substitui a política de privacidade de cada loja.',
+      'A Minha Vitrine trata dados de cadastro, autenticação, segurança e administração da plataforma para prestar o serviço. Quando uma loja usa a plataforma para publicar produtos e receber pedidos, o lojista define a finalidade comercial e os dados solicitados de seus clientes; em relação a esse uso, o lojista pode ser o controlador e a Minha Vitrine pode atuar como operadora, conforme as circunstâncias e instruções aplicáveis.',
+      'O lojista é responsável por fornecer aos visitantes informações adequadas sobre seu próprio tratamento de dados e por atender solicitações relacionadas ao pedido e à relação de consumo. Esta política da Minha Vitrine não substitui a política de privacidade de cada loja.',
     ],
   },
   {
@@ -49,7 +49,7 @@ const sections = [
     title: '5. Compartilhamento e fornecedores',
     paragraphs: [
       'Não vendemos dados pessoais. O acesso pode ser compartilhado na medida necessária para operar a plataforma com fornecedores de hospedagem e infraestrutura (Vercel), banco de dados (Neon), armazenamento de imagens (Vercel Blob), processamento de pagamentos e assinaturas (Mercado Pago) e, quando configurado, envio de e-mails transacionais e de recuperação de senha (Resend). Os fornecedores tratam dados conforme seus serviços e termos aplicáveis.',
-      'No checkout transparente, o SDK do Mercado Pago captura os dados completos do cartão em campos seguros e gera um token. A Ui Sales encaminha esse token e os dados necessários à assinatura ao Mercado Pago, mas não recebe nem armazena o número completo do cartão ou o código de segurança (CVV). O Mercado Pago pode tratar dados do pagador e da assinatura conforme sua própria política.',
+      'No checkout transparente, o SDK do Mercado Pago captura os dados completos do cartão em campos seguros e gera um token. A Minha Vitrine encaminha esse token e os dados necessários à assinatura ao Mercado Pago, mas não recebe nem armazena o número completo do cartão ou o código de segurança (CVV). O Mercado Pago pode tratar dados do pagador e da assinatura conforme sua própria política.',
       'Quando o cliente escolhe enviar um pedido pelo WhatsApp, o navegador abre o serviço da Meta/WhatsApp com a mensagem preparada. O cliente precisa confirmar o envio; a partir daí, o tratamento também fica sujeito aos termos e à política do WhatsApp e do lojista destinatário.',
       'Dados também poderão ser compartilhados quando necessário para cumprir a lei, atender uma ordem válida, proteger direitos e segurança ou viabilizar uma reorganização da plataforma, observadas as salvaguardas aplicáveis.',
     ],
@@ -70,14 +70,14 @@ const sections = [
     title: '8. Retenção e exclusão',
     paragraphs: [
       'Mantemos dados pelo tempo necessário para prestar o serviço, manter a segurança, cumprir obrigações legais e exercer direitos. Quando a conta é encerrada, os dados poderão ser eliminados, anonimizados ou retidos pelo prazo necessário em razão de obrigações legais, prevenção a fraude, solução de disputas e cópias de segurança. Os prazos específicos por categoria ainda precisam ser definidos e documentados.',
-      'Dados de pedidos podem estar relacionados às atividades do lojista e às obrigações legais dele. O lojista deve ser contatado para solicitações relativas à compra e à relação comercial; a Ui Sales deve ser contatada para dados da conta e da plataforma.',
+      'Dados de pedidos podem estar relacionados às atividades do lojista e às obrigações legais dele. O lojista deve ser contatado para solicitações relativas à compra e à relação comercial; a Minha Vitrine deve ser contatada para dados da conta e da plataforma.',
     ],
   },
   {
     title: '9. Direitos dos titulares',
     paragraphs: [
       'Nos termos da LGPD, o titular pode solicitar confirmação do tratamento, acesso, correção, anonimização, bloqueio ou eliminação de dados desnecessários ou tratados em desconformidade, portabilidade quando aplicável, informação sobre compartilhamentos e revisão de decisões automatizadas nos casos previstos em lei. Também pode apresentar reclamação à Autoridade Nacional de Proteção de Dados (ANPD).',
-      'O canal oficial da Ui Sales para receber essas solicitações ainda não foi definido. Esse contato precisa ser publicado antes de esta política ser considerada final. Para dados tratados diretamente por uma loja, procure o lojista responsável.',
+      'O canal oficial da Minha Vitrine para receber essas solicitações ainda não foi definido. Esse contato precisa ser publicado antes de esta política ser considerada final. Para dados tratados diretamente por uma loja, procure o lojista responsável.',
     ],
   },
   {
@@ -98,7 +98,7 @@ export default function PrivacyPage() {
   return (
     <LegalDocument
       title="Política de Privacidade"
-      description="Entenda quais dados a Ui Sales trata, para quais finalidades e como exercer seus direitos previstos na Lei Geral de Proteção de Dados (LGPD)."
+      description="Entenda quais dados a Minha Vitrine trata, para quais finalidades e como exercer seus direitos previstos na Lei Geral de Proteção de Dados (LGPD)."
       sections={sections}
       relatedHref="/termos"
       relatedLabel="Ler os Termos de Uso"
