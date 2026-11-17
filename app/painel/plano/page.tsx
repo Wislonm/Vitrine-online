@@ -1,8 +1,10 @@
 import type { Metadata } from 'next'
-import { Check, Clock3, CreditCard, Package } from 'lucide-react'
+import { Check, Clock3, Package } from 'lucide-react'
 import { PageHeader } from '@/components/panel/page-header'
-import { Button } from '@/components/ui/button'
+import { MercadoPagoTransparentCheckout } from '@/components/panel/mercadopago-transparent-checkout'
+import { CancelMercadoPagoSubscriptionButton } from '@/components/panel/cancel-mercadopago-subscription-button'
 import { formatBRL } from '@/lib/format'
+import { getMercadoPagoSettingsForAdmin } from '@/lib/repositories/payment-settings'
 import { requireSellerContext } from '@/lib/session'
 import { getPlanUsage } from '@/lib/services/plan-usage'
 
@@ -29,16 +31,36 @@ function formatDate(date: Date) {
 }
 
 export default async function PlanPage() {
-  const { store } = await requireSellerContext({ allowExpiredPlan: true })
-  const usage = await getPlanUsage(store.id)
+  const { user, store } = await requireSellerContext({ allowExpiredPlan: true })
+  const [usage, paymentSettings] = await Promise.all([
+    getPlanUsage(store.id),
+    getMercadoPagoSettingsForAdmin(),
+  ])
   const trialEnd = usage.subscription?.expiresAt ?? null
+  const planPrice = usage.plan ? Number(usage.plan.price) : 0
+  const checkoutConfigured = Boolean(paymentSettings.publicKey && paymentSettings.hasAccessToken && paymentSettings.hasWebhookSecret)
+  const environmentSafe = paymentSettings.environment === 'production' ? process.env.VERCEL_ENV === 'production' : process.env.VERCEL_ENV !== 'production'
+  const checkoutAvailable = usage.subscriptionExpired && planPrice > 0 && checkoutConfigured && environmentSafe
+  const pixPaymentExpired = Boolean(usage.subscription?.mercadoPagoPaymentMethod === 'pix' && usage.subscription.mercadoPagoPixExpiresAt && usage.subscription.mercadoPagoPixExpiresAt.getTime() <= Date.now() && ['pending', 'in_process'].includes(usage.subscription.mercadoPagoStatus ?? ''))
+  const paymentPending = Boolean(usage.subscription?.mercadoPagoCheckoutStartedAt || usage.subscription?.mercadoPagoStatus === 'processing' || (['pending', 'in_process'].includes(usage.subscription?.mercadoPagoStatus ?? '') && !pixPaymentExpired))
+  const checkoutInitialProps = {
+    initialPaymentMethod: paymentPending || pixPaymentExpired ? usage.subscription?.mercadoPagoPaymentMethod ?? 'card' : 'card',
+    initialCheckoutMode: paymentPending && usage.subscription?.mercadoPagoCheckoutMode === 'recurring' ? 'recurring' : 'one_time',
+    initialPixQrCode: usage.subscription?.mercadoPagoPixQrCode ?? null,
+    initialPixQrCodeBase64: usage.subscription?.mercadoPagoPixQrCodeBase64 ?? null,
+    initialPixExpiresAt: usage.subscription?.mercadoPagoPixExpiresAt?.toISOString() ?? null,
+    initialPixExpired: pixPaymentExpired,
+  } as const
   const pageTitle = usage.subscriptionExpired ? 'Contratar plano' : 'Meu plano'
+  const unavailableDescription = usage.isTrial
+    ? 'Seu período de teste terminou. Contrate o plano para reativar o painel.'
+    : 'Sua assinatura está suspensa. Regularize o plano para voltar a gerenciar a loja.'
 
   return (
     <>
       <PageHeader
         title={pageTitle}
-        description={usage.subscriptionExpired ? 'Seu período de teste terminou. Contrate o plano para reativar o painel.' : 'Seu teste grátis libera todos os recursos do painel por 30 dias.'}
+        description={usage.subscriptionExpired ? unavailableDescription : 'Seu teste grátis libera todos os recursos do painel por 30 dias.'}
       />
 
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-5">
@@ -49,7 +71,7 @@ export default async function PlanPage() {
               <h2 className="mt-1 font-display text-2xl font-semibold">{usage.plan?.name ?? 'Plano único'}</h2>
             </div>
             <span className={`rounded-full px-3 py-1.5 text-xs font-medium ${usage.subscriptionExpired ? 'bg-destructive/10 text-destructive' : 'bg-background text-foreground'}`}>
-              {usage.subscriptionExpired ? 'Teste encerrado' : usage.isTrial ? 'Teste grátis' : 'Ativo'}
+              {usage.subscriptionExpired ? usage.isTrial ? 'Teste encerrado' : 'Assinatura suspensa' : usage.isTrial ? 'Teste grátis' : usage.subscription?.mercadoPagoStatus === 'cancelled' ? 'Renovação cancelada' : 'Ativo'}
             </span>
           </div>
 
@@ -63,7 +85,11 @@ export default async function PlanPage() {
             </div>
           ) : usage.subscriptionExpired ? (
             <div className="rounded-2xl bg-background p-4 text-sm leading-relaxed text-muted-foreground">
-              O painel está bloqueado, mas seus dados e sua vitrine permanecem salvos. Conclua a contratação para voltar a gerenciar a loja.
+              O painel está bloqueado, mas seus dados e sua vitrine permanecem salvos. {usage.isTrial ? 'Conclua a contratação para voltar a gerenciar a loja.' : 'Regularize a assinatura para voltar a gerenciar a loja.'}
+            </div>
+          ) : usage.subscription?.mercadoPagoStatus === 'cancelled' && trialEnd ? (
+            <div className="rounded-2xl bg-background p-4 text-sm leading-relaxed text-muted-foreground">
+              Renovação cancelada. Seu acesso continua até {formatDate(trialEnd)}.
             </div>
           ) : (
             <div className="flex items-center gap-3 rounded-2xl bg-background p-4 text-sm">
@@ -80,6 +106,7 @@ export default async function PlanPage() {
             <span className="font-semibold">Valor do plano: </span>
             {usage.plan && Number(usage.plan.price) > 0 ? `${formatBRL(Number(usage.plan.price))} / ${billingPeriodLabels[usage.plan.billingPeriod]}` : 'A definir'}
           </div>
+          {usage.subscription?.mercadoPagoStatus === 'authorized' && <CancelMercadoPagoSubscriptionButton />}
         </section>
 
         <section className="flex flex-col gap-5 rounded-3xl border border-border bg-background p-5 sm:p-8">
@@ -91,11 +118,42 @@ export default async function PlanPage() {
             {features.map((feature) => <li key={feature} className="flex items-start gap-2 text-sm"><Check className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" /><span>{feature}</span></li>)}
           </ul>
           <div className="border-t border-border pt-5">
-            <Button type="button" size="lg" disabled className="w-full sm:w-auto">
-              <CreditCard aria-hidden="true" />
-              Contratação online em breve
-            </Button>
-            <p className="mt-3 text-xs text-muted-foreground">A integração de pagamento está sendo preparada. Nenhuma cobrança é feita durante os 30 dias grátis.</p>
+            {!usage.subscriptionExpired ? (
+              <p className="rounded-2xl bg-muted p-4 text-sm leading-relaxed text-muted-foreground">
+                {usage.isTrial ? 'A contratação ficará disponível ao fim dos 30 dias grátis. Não há cobrança durante o teste.' : 'Sua assinatura está ativa.'}
+              </p>
+            ) : paymentPending ? (
+              <MercadoPagoTransparentCheckout
+                {...checkoutInitialProps}
+                initiallyAwaiting
+                publicKey={paymentSettings.publicKey}
+                amount={planPrice}
+                billingPeriod={usage.plan?.billingPeriod ?? 'monthly'}
+                planName={usage.plan?.name ?? 'Plano Ui Sales'}
+                payerEmail={user.email}
+                identificationType={user.documentType}
+                identificationNumber={user.documentNumber}
+              />
+            ) : checkoutAvailable ? (
+              <MercadoPagoTransparentCheckout
+                {...checkoutInitialProps}
+                publicKey={paymentSettings.publicKey}
+                amount={planPrice}
+                billingPeriod={usage.plan!.billingPeriod}
+                planName={usage.plan!.name}
+                payerEmail={user.email}
+                identificationType={user.documentType}
+                identificationNumber={user.documentNumber}
+              />
+            ) : (
+              <p className="rounded-2xl bg-muted p-4 text-sm leading-relaxed text-muted-foreground">
+                {planPrice <= 0
+                  ? 'O valor do plano ainda não foi configurado.'
+                  : !environmentSafe
+                    ? paymentSettings.environment === 'test' ? 'Credenciais de teste não podem processar cobranças em produção.' : 'Credenciais de produção só podem ser usadas no ambiente de produção.'
+                    : 'O checkout ainda não está configurado. A equipe da plataforma precisa concluir a configuração do Mercado Pago.'}
+              </p>
+            )}
           </div>
         </section>
       </div>

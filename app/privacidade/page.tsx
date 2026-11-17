@@ -28,6 +28,7 @@ const sections = [
       'Cadastro do lojista: nome, e-mail, nome comercial, CPF ou CNPJ e WhatsApp informado para receber pedidos.',
       'Dados da loja e da vitrine: endereço, cidade, estado, telefone, e-mail de contato, links de redes sociais, nome exibido, descrição, slug, imagens, produtos, preços, categorias, estoque e variações.',
       'Dados informados por clientes ao enviar um pedido: nome, telefone opcional, observações, itens, quantidades, variações e valores do pedido.',
+      'Dados da assinatura e pagamento: plano, valor e período, opção de cobrança recorrente, método (cartão ou Pix), estado da transação, identificadores do Mercado Pago, referência de conciliação e, enquanto o Pix estiver pendente, código QR/copia e cola e validade.',
       'Dados técnicos e de segurança: endereço IP e agente do navegador associados à sessão, registros de autenticação e eventos necessários para proteger e manter o serviço.',
       'Métricas de navegação: a versão de produção usa Vercel Analytics para métricas de uso do site.',
     ],
@@ -38,6 +39,7 @@ const sections = [
     bullets: [
       'Criar e administrar contas, autenticar usuários e disponibilizar o painel e a vitrine, com base na execução de contrato ou em procedimentos preliminares solicitados pelo titular.',
       'Exibir publicamente dados e conteúdos que o lojista escolhe publicar, para operar a vitrine e viabilizar pedidos.',
+      'Criar e administrar a assinatura e as cobranças recorrentes autorizadas pelo usuário, com base na execução do contrato e na autorização expressa dada no checkout.',
       'Registrar e encaminhar pedidos, proteger contas, prevenir fraude e abuso, manter a segurança e solucionar falhas, conforme a execução do serviço e, quando aplicável, o legítimo interesse.',
       'Cumprir obrigações legais e regulatórias e exercer direitos em processos administrativos ou judiciais, quando aplicável.',
       'Registrar a versão e a data do aceite dos Termos de Uso feito no cadastro, para comprovar a manifestação do usuário. O aceite dos termos não substitui a definição de uma base legal adequada para cada finalidade de tratamento.',
@@ -46,7 +48,8 @@ const sections = [
   {
     title: '5. Compartilhamento e fornecedores',
     paragraphs: [
-      'Não vendemos dados pessoais. O acesso pode ser compartilhado na medida necessária para operar a plataforma com fornecedores de hospedagem e infraestrutura (Vercel), banco de dados (Neon), armazenamento de imagens (Vercel Blob) e, quando configurado, envio de e-mails transacionais e de recuperação de senha (Resend). Os fornecedores tratam dados conforme seus serviços e termos aplicáveis.',
+      'Não vendemos dados pessoais. O acesso pode ser compartilhado na medida necessária para operar a plataforma com fornecedores de hospedagem e infraestrutura (Vercel), banco de dados (Neon), armazenamento de imagens (Vercel Blob), processamento de pagamentos e assinaturas (Mercado Pago) e, quando configurado, envio de e-mails transacionais e de recuperação de senha (Resend). Os fornecedores tratam dados conforme seus serviços e termos aplicáveis.',
+      'No checkout transparente, o SDK do Mercado Pago captura os dados completos do cartão em campos seguros e gera um token. A Ui Sales encaminha esse token e os dados necessários à assinatura ao Mercado Pago, mas não recebe nem armazena o número completo do cartão ou o código de segurança (CVV). O Mercado Pago pode tratar dados do pagador e da assinatura conforme sua própria política.',
       'Quando o cliente escolhe enviar um pedido pelo WhatsApp, o navegador abre o serviço da Meta/WhatsApp com a mensagem preparada. O cliente precisa confirmar o envio; a partir daí, o tratamento também fica sujeito aos termos e à política do WhatsApp e do lojista destinatário.',
       'Dados também poderão ser compartilhados quando necessário para cumprir a lei, atender uma ordem válida, proteger direitos e segurança ou viabilizar uma reorganização da plataforma, observadas as salvaguardas aplicáveis.',
     ],

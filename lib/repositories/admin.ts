@@ -72,7 +72,7 @@ export async function listAccounts(search?: string) {
   return accounts.map((account) => {
     const blocked = account.status === 'blocked' || account.storeStatus === 'blocked'
     const planExpired = account.subscriptionStatus === 'expired' || Boolean(account.subscriptionExpiresAt && account.subscriptionExpiresAt.getTime() <= now)
-    const paymentPending = ['past_due', 'pending', 'unpaid', 'suspended'].includes(account.subscriptionStatus ?? '') || account.storeStatus === 'suspended' || account.status === 'suspended'
+    const paymentPending = ['past_due', 'pending', 'unpaid', 'suspended', 'paused', 'cancelled'].includes(account.subscriptionStatus ?? '') || account.storeStatus === 'suspended' || account.status === 'suspended'
     const lifecycleStatus: 'active' | 'suspended' | 'blocked' = blocked ? 'blocked' : planExpired || paymentPending ? 'suspended' : 'active'
     const lifecycleReason = lifecycleStatus !== 'suspended' ? null : planExpired ? 'Plano expirado' : 'Pendência financeira'
 

@@ -35,7 +35,10 @@ export class SubscriptionExpiredError extends Error {
 
 async function hasExpiredSubscription(storeId: string) {
   const plan = await getPlanForStore(storeId)
-  return Boolean(plan?.subscription.expiresAt && plan.subscription.expiresAt.getTime() <= Date.now())
+  const subscription = plan?.subscription
+  if (!subscription) return false
+  const terminalStatuses = ['expired', 'past_due', 'pending', 'paused', 'cancelled', 'suspended']
+  return Boolean((subscription.expiresAt && subscription.expiresAt.getTime() <= Date.now()) || terminalStatuses.includes(subscription.status))
 }
 
 /** Para páginas: redireciona ao login quando não autenticado ou bloqueado. */

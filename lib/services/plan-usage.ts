@@ -9,7 +9,10 @@ export async function getPlanUsage(storeId: string) {
   const subscription = planRow?.subscription ?? null
   const limit = plan?.productLimit ?? 0
   const expiresAt = subscription?.expiresAt ?? null
-  const subscriptionExpired = Boolean(expiresAt && expiresAt.getTime() <= Date.now())
+  const terminalStatuses = ['expired', 'past_due', 'pending', 'paused', 'cancelled', 'suspended']
+  const subscriptionExpired = Boolean(
+    subscription && ((expiresAt && expiresAt.getTime() <= Date.now()) || terminalStatuses.includes(subscription.status)),
+  )
   const isTrial = subscription?.status === 'trial'
   const daysRemaining = expiresAt
     ? Math.max(Math.ceil((expiresAt.getTime() - Date.now()) / DAY_MS), 0)
