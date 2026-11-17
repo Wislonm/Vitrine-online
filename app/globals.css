@@ -85,6 +85,21 @@
 }
 
 @layer utilities {
+  .mp-secure-field {
+    height: 3rem;
+    min-height: 3rem;
+    max-height: 3rem;
+    overflow: hidden;
+  }
+
+  .mp-secure-field iframe {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    border: 0 !important;
+  }
+
   /* O painel do vendedor segue a especificação compacta: campos 8px e blocos 10px. */
   .seller-panel input,
   .seller-panel textarea,
