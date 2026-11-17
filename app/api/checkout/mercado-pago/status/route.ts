@@ -15,7 +15,7 @@ export async function GET() {
       subscription.pixExpiresAt.getTime() <= Date.now(),
     )
     return NextResponse.json({
-      active: !subscriptionExpired,
+      active: !subscriptionExpired && ['authorized', 'approved'].includes(subscription?.providerStatus ?? ''),
       processing: !paymentExpired && (Boolean(subscription?.checkoutStartedAt) || ['pending', 'in_process', 'processing'].includes(subscription?.providerStatus ?? '')),
       paymentExpired,
       status: subscription?.status ?? null,

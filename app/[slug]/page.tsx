@@ -31,7 +31,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
       type: 'website',
       title,
       description,
-      siteName: 'Ui Sales',
+      siteName: 'Minha Vitrine',
       locale: 'pt_BR',
       url: `/${store.slug}`,
       images: image ? [{ url: image }] : undefined,

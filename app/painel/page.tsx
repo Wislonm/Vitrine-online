@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ExternalLink, PackagePlus, UserPen } from 'lucide-react'
+import { Clock3, ExternalLink, PackagePlus, UserPen } from 'lucide-react'
 import { CopyLinkButton } from '@/components/panel/copy-link-button'
 import { PageHeader } from '@/components/panel/page-header'
 import { UsageBar } from '@/components/panel/usage-bar'
@@ -11,6 +11,10 @@ export default async function DashboardPage() {
   const { store } = await requireSellerContext()
   const [usage, baseUrl] = await Promise.all([getPlanUsage(store.id), getBaseUrl()])
   const publicUrl = `${baseUrl}/${store.slug}`
+  const nextPaymentAt = usage.subscription?.mercadoPagoNextPaymentAt ?? null
+  const renewalDateLabel = nextPaymentAt
+    ? new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'long' }).format(nextPaymentAt)
+    : null
 
   return (
     <>
@@ -32,9 +36,12 @@ export default async function DashboardPage() {
             <h2 id="plan-title" className="text-xl font-semibold">
               {usage.plan?.name ?? 'Pro'}
             </h2>
-            <Link href="/painel/plano" className="text-sm underline-offset-4 hover:underline">
-              Detalhes
-            </Link>
+            <div className="flex flex-wrap items-center justify-end gap-3">
+              {usage.isTrial && <Link href="/painel/plano#contratar" className="rounded-full bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground">Seja Pro</Link>}
+              <Link href="/painel/plano" className="text-sm underline-offset-4 hover:underline">
+                Detalhes
+              </Link>
+            </div>
           </div>
           <div>
             <p className="font-display text-5xl font-semibold">
@@ -44,6 +51,15 @@ export default async function DashboardPage() {
             <p className="mt-1 text-sm text-muted-foreground">produtos cadastrados</p>
           </div>
           <UsageBar used={usage.used} limit={usage.limit} percent={usage.percent} />
+          {usage.isTrial && usage.daysRemaining !== null && (
+            <p className="flex items-center gap-2 text-sm text-muted-foreground"><Clock3 className="size-4 shrink-0" aria-hidden="true" />Teste grátis: {usage.daysRemaining} {usage.daysRemaining === 1 ? 'dia restante' : 'dias restantes'}</p>
+          )}
+          {!usage.isTrial && usage.daysUntilRenewal !== null && (
+            <p className="flex items-center gap-2 text-sm text-muted-foreground"><Clock3 className="size-4 shrink-0" aria-hidden="true" />Renovação em {usage.daysUntilRenewal} {usage.daysUntilRenewal === 1 ? 'dia' : 'dias'}{renewalDateLabel ? ` · ${renewalDateLabel}` : ''}</p>
+          )}
+          {!usage.isTrial && usage.subscription?.mercadoPagoCheckoutMode === 'one_time' && usage.daysRemaining !== null && (
+            <p className="flex items-center gap-2 text-sm text-muted-foreground"><Clock3 className="size-4 shrink-0" aria-hidden="true" />Plano válido por mais {usage.daysRemaining} {usage.daysRemaining === 1 ? 'dia' : 'dias'}</p>
+          )}
           <p className="text-sm">
             {usage.isFull
               ? 'Limite atingido. Exclua um produto para liberar espaço no plano.'

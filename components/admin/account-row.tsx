@@ -2,9 +2,9 @@
 
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
-import { ExternalLink, Lock, LockOpen } from 'lucide-react'
+import { ExternalLink, Lock, LockOpen, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { changeStorePlanAction, setAccountStatusAction } from '@/app/actions/admin'
+import { changeStorePlanAction, deleteAccountAction, setAccountStatusAction } from '@/app/actions/admin'
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { NativeSelect } from '@/components/ui/native-select'
+import { Input } from '@/components/ui/input'
 import { formatDate } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
@@ -48,9 +49,13 @@ export function AccountRow({
 }) {
   const [pending, startTransition] = useTransition()
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [confirmationEmail, setConfirmationEmail] = useState('')
+  const [confirmPermanentDelete, setConfirmPermanentDelete] = useState(false)
   const blocked = account.lifecycleStatus === 'blocked'
   const isSelf = account.userId === currentAdminId
   const isAdmin = account.role === 'admin'
+  const confirmationMatches = confirmationEmail.trim().toLowerCase() === account.email.trim().toLowerCase()
 
   function changePlan(planId: string) {
     if (!account.storeId) return
@@ -68,6 +73,30 @@ export function AccountRow({
       if (result.ok) toast.success(result.message ?? 'Conta atualizada')
       else toast.error(result.error)
       setConfirmOpen(false)
+    })
+  }
+
+  function changeDeleteDialog(open: boolean) {
+    setDeleteOpen(open)
+    if (!open) {
+      setConfirmationEmail('')
+      setConfirmPermanentDelete(false)
+    }
+  }
+
+  function deleteAccount() {
+    startTransition(async () => {
+      const result = await deleteAccountAction({
+        userId: account.userId,
+        confirmationEmail,
+        confirmed: confirmPermanentDelete,
+      })
+      if (result.ok) {
+        toast.success(result.message ?? 'Conta excluída')
+        changeDeleteDialog(false)
+      } else {
+        toast.error(result.error)
+      }
     })
   }
 
@@ -130,10 +159,15 @@ export function AccountRow({
           </div>
         )}
         {!isSelf && !isAdmin && (
-          <Button type="button" variant={blocked ? 'secondary' : 'outline'} size="sm" disabled={pending} onClick={() => setConfirmOpen(true)}>
-            {blocked ? <LockOpen aria-hidden="true" /> : <Lock aria-hidden="true" />}
-            {blocked ? 'Desbloquear' : 'Bloquear'}
-          </Button>
+          <>
+            <Button type="button" variant={blocked ? 'secondary' : 'outline'} size="sm" disabled={pending} onClick={() => setConfirmOpen(true)}>
+              {blocked ? <LockOpen aria-hidden="true" /> : <Lock aria-hidden="true" />}
+              {blocked ? 'Desbloquear' : 'Bloquear'}
+            </Button>
+            <Button type="button" variant="destructive" size="sm" disabled={pending} onClick={() => changeDeleteDialog(true)}>
+              <Trash2 aria-hidden="true" />Excluir
+            </Button>
+          </>
         )}
       </div>
 
@@ -151,6 +185,47 @@ export function AccountRow({
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <Button type="button" variant={blocked ? 'default' : 'destructive'} disabled={pending} onClick={toggleStatus}>
               {blocked ? 'Desbloquear' : 'Bloquear'}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={deleteOpen} onOpenChange={changeDeleteDialog}>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir conta permanentemente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação remove a conta, sessões, vitrine, produtos, pedidos e imagens próprias da loja. Renovações ativas serão canceladas antes da remoção; pagamentos já aprovados não são reembolsados. O registro de auditoria será preservado. Não é possível desfazer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex flex-col gap-4 text-sm">
+            <p>Conta selecionada: <span className="font-medium text-foreground">{account.email}</span></p>
+            <div className="flex flex-col gap-2">
+              <label htmlFor={`delete-account-email-${account.userId}`} className="font-medium">Digite o e-mail exato para confirmar</label>
+              <Input
+                id={`delete-account-email-${account.userId}`}
+                type="email"
+                autoComplete="off"
+                value={confirmationEmail}
+                onChange={(event) => setConfirmationEmail(event.target.value)}
+                aria-invalid={confirmationEmail.length > 0 && !confirmationMatches}
+              />
+              {confirmationEmail.length > 0 && !confirmationMatches && <p role="status" className="text-xs text-destructive">O e-mail não corresponde à conta selecionada.</p>}
+            </div>
+            <label className="flex cursor-pointer items-start gap-3 rounded-xl bg-muted p-3 leading-relaxed">
+              <input
+                type="checkbox"
+                checked={confirmPermanentDelete}
+                onChange={(event) => setConfirmPermanentDelete(event.target.checked)}
+                className="mt-1 size-4 shrink-0 accent-primary"
+              />
+              <span>Entendo que os dados da loja e os pedidos serão removidos permanentemente.</span>
+            </label>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={pending}>Cancelar</AlertDialogCancel>
+            <Button type="button" variant="destructive" disabled={pending || !confirmationMatches || !confirmPermanentDelete} onClick={deleteAccount}>
+              {pending ? 'Excluindo...' : 'Excluir conta'}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>

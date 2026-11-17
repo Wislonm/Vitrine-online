@@ -7,7 +7,7 @@ import { user as userTable } from '@/lib/db/schema'
 import { LEGAL_DOCUMENT_VERSION } from '@/lib/legal'
 import { getMercadoPagoCredentialsForServer } from '@/lib/repositories/payment-settings'
 import { getMercadoPagoSubscriptionState, claimMercadoPagoCheckout, releaseMercadoPagoCheckout, saveMercadoPagoPreapproval } from '@/lib/repositories/mercadopago-subscriptions'
-import { getPlanForStore } from '@/lib/repositories/plans'
+import { listPlans } from '@/lib/repositories/plans'
 import { getSellerContextOrThrow, UnauthorizedError } from '@/lib/session'
 import { getBaseUrl } from '@/lib/url'
 
@@ -35,8 +35,10 @@ export async function POST(request: NextRequest) {
     }
 
     const context = await getSellerContextOrThrow({ allowExpiredPlan: true })
-    if (!context.subscriptionExpired) {
-      return NextResponse.json({ error: 'A contratação estará disponível quando o período grátis terminar.' }, { status: 409 })
+    const currentState = await getMercadoPagoSubscriptionState(context.store.id)
+    const trialActive = Boolean(currentState?.status === 'trial' && currentState.expiresAt && currentState.expiresAt.getTime() > Date.now())
+    if (!context.subscriptionExpired && !trialActive) {
+      return NextResponse.json({ error: 'Sua assinatura atual já está ativa.' }, { status: 409 })
     }
 
     const parsed = checkoutSchema.safeParse(await request.json().catch(() => null))
@@ -44,9 +46,9 @@ export async function POST(request: NextRequest) {
 
     await db.update(userTable).set({ termsAccepted: true, termsAcceptedAt: new Date(), termsVersion: LEGAL_DOCUMENT_VERSION, updatedAt: new Date() }).where(eq(userTable.id, context.user.id))
 
-    const planRow = await getPlanForStore(context.store.id)
-    const plan = planRow?.plan
-    if (!plan || !plan.isActive || Number(plan.price) <= 0) {
+    const activePlans = await listPlans({ onlyActive: true })
+    const plan = activePlans.find((activePlan) => activePlan.slug === 'business') ?? null
+    if (!plan || Number(plan.price) <= 0) {
       return NextResponse.json({ error: 'O plano ainda não tem um valor de cobrança configurado.' }, { status: 409 })
     }
 
@@ -61,7 +63,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Credenciais de produção só podem ser usadas no ambiente de produção.' }, { status: 503 })
     }
 
-    const currentState = await getMercadoPagoSubscriptionState(context.store.id)
     if (currentState?.preapprovalId && currentState.providerStatus === 'pending') {
       return NextResponse.json({ error: 'Já existe uma assinatura em processamento. Aguarde a confirmação antes de tentar novamente.', state: 'processing' }, { status: 409 })
     }
@@ -100,6 +101,7 @@ export async function POST(request: NextRequest) {
         frequency_type: 'months',
         transaction_amount: Number(plan.price),
         currency_id: 'BRL',
+        ...(trialActive && currentState?.expiresAt ? { start_date: currentState.expiresAt.toISOString() } : {}),
       },
       back_url: `${baseUrl}/painel/plano?assinatura=retorno`,
     }
@@ -134,12 +136,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error }, { status })
     }
 
-    const result = await response.json() as { id?: string | number; status?: string }
+    const result = await response.json() as { id?: string | number; status?: string; next_payment_date?: string }
     if (result.id === undefined || result.id === null || !result.status) {
       return NextResponse.json({ state: 'processing', message: 'O Mercado Pago recebeu a solicitação. Aguardando confirmação.' }, { status: 202 })
     }
 
     const preapprovalStatus = result.status.toLowerCase()
+    const responseNextPaymentDate = result.next_payment_date ? new Date(result.next_payment_date) : null
+    const nextPaymentAt = responseNextPaymentDate && !Number.isNaN(responseNextPaymentDate.getTime())
+      ? responseNextPaymentDate
+      : trialActive ? currentState?.expiresAt ?? null : null
     if (!['authorized', 'pending'].includes(preapprovalStatus)) {
       await saveMercadoPagoPreapproval({
         preapprovalId: String(result.id),
@@ -147,6 +153,7 @@ export async function POST(request: NextRequest) {
         status: preapprovalStatus,
         amount: Number(plan.price).toFixed(2),
         billingPeriod: plan.billingPeriod,
+        nextPaymentAt,
       })
       return NextResponse.json({ error: 'A assinatura não foi autorizada. Confira o cartão e tente novamente.' }, { status: 422 })
     }
@@ -157,6 +164,7 @@ export async function POST(request: NextRequest) {
       status: preapprovalStatus,
       amount: Number(plan.price).toFixed(2),
       billingPeriod: plan.billingPeriod,
+      nextPaymentAt,
     })
     if (!saved) return NextResponse.json({ state: 'processing', message: 'Assinatura criada e aguardando sincronização.' }, { status: 202 })
 

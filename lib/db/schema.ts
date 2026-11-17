@@ -265,6 +265,7 @@ export const subscriptions = pgTable('subscriptions', {
   mercadoPagoCheckoutStartedAt: timestamp('mercadopago_checkout_started_at', tz),
   mercadoPagoAmount: numeric('mercadopago_amount', { precision: 12, scale: 2 }),
   mercadoPagoBillingPeriod: text('mercadopago_billing_period', { enum: ['monthly', 'quarterly', 'semiannual', 'yearly'] }),
+  mercadoPagoNextPaymentAt: timestamp('mercadopago_next_payment_at', tz),
   mercadoPagoPixQrCode: text('mercadopago_pix_qr_code'),
   mercadoPagoPixQrCodeBase64: text('mercadopago_pix_qr_code_base64'),
   mercadoPagoPixExpiresAt: timestamp('mercadopago_pix_expires_at', tz),

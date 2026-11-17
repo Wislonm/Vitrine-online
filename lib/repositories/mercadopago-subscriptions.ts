@@ -22,6 +22,7 @@ export async function getMercadoPagoSubscriptionState(storeId: string) {
       checkoutStartedAt: subscriptions.mercadoPagoCheckoutStartedAt,
       amount: subscriptions.mercadoPagoAmount,
       billingPeriod: subscriptions.mercadoPagoBillingPeriod,
+      nextPaymentAt: subscriptions.mercadoPagoNextPaymentAt,
       pixQrCode: subscriptions.mercadoPagoPixQrCode,
       pixQrCodeBase64: subscriptions.mercadoPagoPixQrCodeBase64,
       pixExpiresAt: subscriptions.mercadoPagoPixExpiresAt,
@@ -53,6 +54,7 @@ export async function claimMercadoPagoCheckout(input: {
       mercadoPagoCheckoutMode: input.checkoutMode,
       mercadoPagoAmount: input.amount,
       mercadoPagoBillingPeriod: input.billingPeriod,
+      mercadoPagoNextPaymentAt: null,
       mercadoPagoPixQrCode: null,
       mercadoPagoPixQrCodeBase64: null,
       mercadoPagoPixExpiresAt: null,
@@ -77,6 +79,7 @@ export async function releaseMercadoPagoCheckout(storeId: string, externalRefere
       mercadoPagoCheckoutMode: null,
       mercadoPagoAmount: null,
       mercadoPagoBillingPeriod: null,
+      mercadoPagoNextPaymentAt: null,
       mercadoPagoPixQrCode: null,
       mercadoPagoPixQrCodeBase64: null,
       mercadoPagoPixExpiresAt: null,
@@ -96,6 +99,7 @@ export async function getMercadoPagoCheckoutByExternalReference(externalReferenc
       preapprovalId: subscriptions.mercadoPagoPreapprovalId,
       amount: subscriptions.mercadoPagoAmount,
       billingPeriod: subscriptions.mercadoPagoBillingPeriod,
+      nextPaymentAt: subscriptions.mercadoPagoNextPaymentAt,
       checkoutMode: subscriptions.mercadoPagoCheckoutMode,
       paymentMethod: subscriptions.mercadoPagoPaymentMethod,
       paymentId: subscriptions.mercadoPagoPaymentId,
@@ -116,6 +120,7 @@ export async function saveMercadoPagoPreapproval(input: {
   amount: string
   billingPeriod: 'monthly' | 'quarterly' | 'semiannual' | 'yearly'
   currentPeriodEndsAt?: Date | null
+  nextPaymentAt?: Date | null
 }) {
   const providerStatus = input.status.toLowerCase()
   const retainsAccess = providerStatus === 'cancelled' && Boolean(input.currentPeriodEndsAt && input.currentPeriodEndsAt.getTime() > Date.now())
@@ -143,6 +148,7 @@ export async function saveMercadoPagoPreapproval(input: {
       mercadoPagoCheckoutStartedAt: null,
       mercadoPagoAmount: input.amount,
       mercadoPagoBillingPeriod: input.billingPeriod,
+      mercadoPagoNextPaymentAt: providerStatus === 'cancelled' ? null : input.nextPaymentAt ?? null,
       mercadoPagoPixQrCode: null,
       mercadoPagoPixQrCodeBase64: null,
       mercadoPagoPixExpiresAt: null,
@@ -199,6 +205,7 @@ export async function saveMercadoPagoOneTimePayment(input: {
       mercadoPagoCheckoutStartedAt: null,
       mercadoPagoAmount: input.amount,
       mercadoPagoBillingPeriod: input.billingPeriod,
+      mercadoPagoNextPaymentAt: null,
       mercadoPagoPixQrCode: input.pixQrCode ?? null,
       mercadoPagoPixQrCodeBase64: input.pixQrCodeBase64 ?? null,
       mercadoPagoPixExpiresAt: input.pixExpiresAt ?? null,
@@ -218,6 +225,7 @@ export async function markMercadoPagoSubscriptionCancelled(input: { storeId: str
     .update(subscriptions)
     .set({
       mercadoPagoStatus: 'cancelled',
+      mercadoPagoNextPaymentAt: null,
       status: keepAccess ? 'active' : 'cancelled',
       expiresAt: keepAccess ? input.accessUntil : new Date(),
       updatedAt: new Date(),
@@ -225,7 +233,7 @@ export async function markMercadoPagoSubscriptionCancelled(input: { storeId: str
     .where(and(eq(subscriptions.storeId, input.storeId), eq(subscriptions.mercadoPagoPreapprovalId, input.preapprovalId)))
 }
 
-export async function applyMercadoPagoAuthorizedPayment(input: { preapprovalId: string; status: string }) {
+export async function applyMercadoPagoAuthorizedPayment(input: { preapprovalId: string; status: string; nextPaymentAt?: Date | null }) {
   const providerStatus = input.status.toLowerCase()
   if (providerStatus === 'pending' || providerStatus === 'in_process') return null
   const approved = providerStatus === 'approved'
@@ -238,7 +246,7 @@ export async function applyMercadoPagoAuthorizedPayment(input: { preapprovalId: 
     .set({
       status: approved ? 'active' : 'past_due',
       ...(proPlanId ? { planId: proPlanId } : {}),
-      ...(approved ? { startedAt: new Date(), expiresAt: null } : {}),
+      ...(approved ? { startedAt: new Date(), expiresAt: null, mercadoPagoNextPaymentAt: input.nextPaymentAt ?? null } : {}),
       updatedAt: new Date(),
     })
     .where(and(

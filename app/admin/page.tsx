@@ -5,6 +5,8 @@ const actionLabels: Record<string, string> = {
   change_plan: 'Alterou o plano de uma loja',
   block_account: 'Bloqueou uma conta',
   unblock_account: 'Desbloqueou uma conta',
+  delete_account: 'Excluiu uma conta e os dados relacionados',
+  delete_account_media_cleanup_failed: 'Exclusão de mídia pendente após remover uma conta',
   update_plan: 'Editou um plano',
 }
 

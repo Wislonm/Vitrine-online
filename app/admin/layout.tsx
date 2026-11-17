@@ -6,7 +6,7 @@ import { Logo } from '@/components/brand/logo'
 import { requireAdmin } from '@/lib/session'
 
 export const metadata: Metadata = {
-  title: { default: 'Administração', template: '%s | Admin Ui Sales' },
+  title: { default: 'Administração', template: '%s | Admin Minha Vitrine' },
   robots: { index: false, follow: false },
 }
 

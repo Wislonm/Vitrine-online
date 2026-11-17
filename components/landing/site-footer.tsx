@@ -53,7 +53,7 @@ export function SiteFooter() {
         </nav>
       </div>
       <div className="border-t border-border py-5 text-center text-xs text-muted-foreground">
-        &copy; {new Date().getFullYear()} Ui Sales. Todos os direitos reservados.
+        &copy; {new Date().getFullYear()} Minha Vitrine. Todos os direitos reservados.
       </div>
     </footer>
   )

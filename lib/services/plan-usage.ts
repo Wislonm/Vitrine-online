@@ -17,6 +17,10 @@ export async function getPlanUsage(storeId: string) {
   const daysRemaining = expiresAt
     ? Math.max(Math.ceil((expiresAt.getTime() - Date.now()) / DAY_MS), 0)
     : null
+  const nextPaymentAt = subscription?.mercadoPagoNextPaymentAt ?? null
+  const daysUntilRenewal = nextPaymentAt
+    ? Math.max(Math.ceil((nextPaymentAt.getTime() - Date.now()) / DAY_MS), 0)
+    : null
 
   return {
     plan,
@@ -28,6 +32,7 @@ export async function getPlanUsage(storeId: string) {
     isFull: used >= limit,
     isTrial,
     daysRemaining,
+    daysUntilRenewal,
     subscriptionExpired,
   }
 }
