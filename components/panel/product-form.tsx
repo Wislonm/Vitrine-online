@@ -258,7 +258,7 @@ export function ProductForm({ productId, categories, initial }: ProductFormProps
             <ArrowLeft aria-hidden="true" />
             Voltar
           </Link>
-          {productId && <div className="basis-full flex justify-center border-t border-border pt-4"><Button type="button" variant="ghost" size="sm" className="border border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={deleteCurrentProduct}><Trash2 aria-hidden="true" />Excluir produto</Button></div>}
+          {productId && <div className="basis-full flex justify-center border-t border-border pt-4"><Button type="button" variant="ghost" size="sm" onClick={deleteCurrentProduct}><Trash2 aria-hidden="true" />Excluir produto</Button></div>}
         </div>
       </div>
       </form>

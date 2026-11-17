@@ -83,7 +83,7 @@ export function HeroForm({ initial }: HeroFormProps) {
                   type="button"
                   onClick={() => setColorScheme(theme.id)}
                   aria-pressed={colorScheme === theme.id}
-                  className={`flex min-w-0 items-center gap-2 rounded-xl border p-2 text-left text-xs transition-colors ${colorScheme === theme.id ? 'border-foreground bg-background ring-2 ring-ring/30' : 'border-border bg-background hover:bg-muted'}`}
+                  className={`flex min-w-0 items-center gap-2 rounded-xl border p-2 text-left text-xs transition-colors ${colorScheme === theme.id ? 'border-foreground bg-foreground text-background ring-2 ring-ring/30' : 'border-border bg-foreground text-background hover:bg-foreground/85'}`}
                 >
                   <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-border/60" style={{ backgroundColor: theme.primary }}>
                     <span className="size-2 rounded-full bg-white/90" />

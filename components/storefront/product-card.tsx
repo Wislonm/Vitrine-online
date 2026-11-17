@@ -72,7 +72,7 @@ export function ProductCard({ product, slug }: { product: StorefrontProduct; slu
             <ImageIcon className="absolute inset-0 m-auto size-8 text-muted-foreground/60" aria-hidden="true" />
           )}
         </Link>
-        <button type="button" onClick={() => wishlist.toggle({ productId: product.id, name: product.name, price: product.price, imageUrl: product.imageUrl })} aria-label={wishlist.has(product.id) ? `Remover ${product.name} da lista de desejos` : `Adicionar ${product.name} à lista de desejos`} className="absolute top-3 right-3 flex size-10 items-center justify-center rounded-full bg-background/90 text-foreground shadow-sm hover:bg-background">
+        <button type="button" onClick={() => wishlist.toggle({ productId: product.id, name: product.name, price: product.price, imageUrl: product.imageUrl })} aria-label={wishlist.has(product.id) ? `Remover ${product.name} da lista de desejos` : `Adicionar ${product.name} à lista de desejos`} className="absolute top-3 right-3 flex size-10 items-center justify-center rounded-full bg-foreground text-background shadow-sm hover:bg-foreground/85">
           <Heart className="size-4" fill={wishlist.has(product.id) ? 'currentColor' : 'none'} aria-hidden="true" />
         </button>
       </div>
@@ -98,8 +98,8 @@ export function ProductCard({ product, slug }: { product: StorefrontProduct; slu
                 aria-label={isColor ? `Selecionar cor ${option.label}` : isImage ? `Selecionar textura ${option.label}` : `Selecionar ${option.label}`}
                 aria-pressed={selected}
                 className={isColor || isImage
-                  ? `flex size-8 shrink-0 items-center justify-center rounded-full border-2 transition-transform ${selected ? 'scale-110 border-primary' : 'border-border'}`
-                  : `shrink-0 rounded-full bg-muted px-2.5 py-1 text-[0.7rem] transition-colors ${selected ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}`}
+                  ? `flex size-8 shrink-0 items-center justify-center rounded-full border-2 bg-foreground text-background transition-transform ${selected ? 'scale-110 border-primary ring-2 ring-primary' : 'border-foreground'}`
+                  : `shrink-0 rounded-full bg-foreground px-2.5 py-1 text-[0.7rem] text-background transition-colors ${selected ? 'ring-2 ring-primary' : 'hover:bg-foreground/85'}`}
               >
                 {isColor ? <i className="size-5 rounded-full" style={{ backgroundColor: option.colorValue ?? undefined }} /> : isImage ? <img src={option.imageUrl ?? ''} alt="" className="size-6 rounded-full object-cover" /> : option.value || option.label}
               </button>
@@ -118,11 +118,11 @@ export function ProductCard({ product, slug }: { product: StorefrontProduct; slu
           </div>
         )}
         {requiresDetail ? (
-          <Link href={productLink} aria-label={`Escolher variações de ${product.name}`} className="flex size-11 items-center justify-center rounded-full bg-primary text-primary-foreground hover:bg-primary/85">
+          <Link href={productLink} aria-label={`Escolher variações de ${product.name}`} className="flex size-11 items-center justify-center rounded-full bg-foreground text-background hover:bg-foreground/85">
             <SlidersHorizontal className="size-5" aria-hidden="true" />
           </Link>
         ) : (
-          <button type="button" onClick={handleAdd} disabled={hasVariations && !selectedOption} aria-label={hasVariations ? `Escolha uma variação de ${product.name}` : `Adicionar ${product.name} ao carrinho`} className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform hover:bg-primary/85 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40">
+          <button type="button" onClick={handleAdd} disabled={hasVariations && !selectedOption} aria-label={hasVariations ? `Escolha uma variação de ${product.name}` : `Adicionar ${product.name} ao carrinho`} className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full bg-foreground text-background transition-transform hover:bg-foreground/85 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40">
             <Plus className="size-5" aria-hidden="true" />
           </button>
         )}

@@ -14,7 +14,7 @@ export function WishlistSheet({ open, onOpenChange, slug, storeName, themeStyle 
       <SheetContent showCloseButton={false} className="gap-0 bg-background p-0 data-[side=right]:w-full data-[side=right]:sm:max-w-md" style={themeStyle}>
         <div className="flex items-center justify-between px-5 pt-5 pb-4">
           <div><SheetTitle className="font-display text-2xl font-semibold">Lista de desejos</SheetTitle><SheetDescription className="text-xs">Itens salvos em {storeName}</SheetDescription></div>
-          <SheetClose aria-label="Fechar lista de desejos" className="flex size-11 items-center justify-center rounded-full bg-muted"><X className="size-4" aria-hidden="true" /></SheetClose>
+          <SheetClose aria-label="Fechar lista de desejos" className="flex size-11 items-center justify-center rounded-full bg-foreground text-background hover:bg-foreground/85"><X className="size-4" aria-hidden="true" /></SheetClose>
         </div>
         {wishlist.items.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 px-8 text-center"><Heart className="size-8 text-muted-foreground" aria-hidden="true" /><p className="font-display text-xl font-semibold">Sua lista está vazia</p><p className="text-sm text-muted-foreground">Toque no coração dos produtos que você quer guardar.</p></div>

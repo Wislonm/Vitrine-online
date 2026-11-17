@@ -25,7 +25,7 @@ export function SiteHeader() {
             </a>
           ))}
         </nav>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           <Link href="/login" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
             Entrar
           </Link>

@@ -18,7 +18,7 @@ export function StoreHeader({ name, city, avatarUrl, slug, themeStyle }: { name:
           </div>
           <div className="min-w-0"><p className="truncate font-display text-base font-semibold">{name}</p>{city && <p className="truncate text-xs text-muted-foreground">{city}</p>}</div>
         </div>
-        <button type="button" onClick={() => setOpen(true)} aria-label={`Abrir lista de desejos, ${wishlist.count} ${wishlist.count === 1 ? 'item' : 'itens'}`} className="relative flex size-11 shrink-0 items-center justify-center rounded-full bg-muted hover:bg-accent">
+        <button type="button" onClick={() => setOpen(true)} aria-label={`Abrir lista de desejos, ${wishlist.count} ${wishlist.count === 1 ? 'item' : 'itens'}`} className="relative flex size-11 shrink-0 items-center justify-center rounded-full bg-foreground text-background hover:bg-foreground/85">
           <Heart className="size-5" fill={wishlist.count ? 'currentColor' : 'none'} aria-hidden="true" />
           {wishlist.count > 0 && <span className="absolute -top-1 -right-1 min-w-5 rounded-full bg-primary px-1.5 text-center text-[0.7rem] leading-5 text-primary-foreground">{wishlist.count}</span>}
         </button>

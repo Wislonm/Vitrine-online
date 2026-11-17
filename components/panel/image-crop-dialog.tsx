@@ -106,7 +106,7 @@ export function ImageCropDialog({ open, src, kind, saving, onCancel, onConfirm, 
             type="button"
             onClick={() => setZoom((z) => Math.max(1, Number((z - 0.2).toFixed(2))))}
             aria-label="Diminuir zoom"
-            className="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-full bg-muted hover:bg-accent"
+            className="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-full bg-foreground text-background hover:bg-foreground/85"
           >
             <Minus className="size-4" aria-hidden="true" />
           </button>
@@ -127,7 +127,7 @@ export function ImageCropDialog({ open, src, kind, saving, onCancel, onConfirm, 
             type="button"
             onClick={() => setZoom((z) => Math.min(4, Number((z + 0.2).toFixed(2))))}
             aria-label="Aumentar zoom"
-            className="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-full bg-muted hover:bg-accent"
+            className="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-full bg-foreground text-background hover:bg-foreground/85"
           >
             <Plus className="size-4" aria-hidden="true" />
           </button>
@@ -138,7 +138,7 @@ export function ImageCropDialog({ open, src, kind, saving, onCancel, onConfirm, 
               setCrop({ x: 0, y: 0 })
             }}
             aria-label="Restaurar enquadramento"
-            className="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-full bg-muted hover:bg-accent"
+            className="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-full bg-foreground text-background hover:bg-foreground/85"
           >
             <RotateCcw className="size-4" aria-hidden="true" />
           </button>
