@@ -5,31 +5,41 @@ import { z } from 'zod'
 import { getAdminOrThrow, UnauthorizedError } from '@/lib/session'
 import { deleteAccountPermanently, getAccountDeletionSnapshot, getStoreById, getUserById, recordAdminAction, setUserStatus } from '@/lib/repositories/admin'
 import { isAssetOwnedByStore, storage } from '@/lib/storage'
-import { listPlans, setStorePlan, updatePlan } from '@/lib/repositories/plans'
+import { getPlanPrice, listPlans, setStorePlan, updatePlan, type CheckoutBillingPeriod } from '@/lib/repositories/plans'
 import { getMercadoPagoCredentialsForServer, getMercadoPagoSettingsForAdmin, saveMercadoPagoSettings } from '@/lib/repositories/payment-settings'
 import { mercadoPagoSettingsSchema, planUpdateSchema, zodFieldErrors, type ActionResult } from '@/lib/validators'
 
 const FORBIDDEN = 'Você não tem permissão para esta ação.'
 
-export async function changeStorePlanAction(storeId: string, planId: string): Promise<ActionResult> {
+export async function changeStorePlanAction(
+  storeId: string,
+  planId: string,
+  period: CheckoutBillingPeriod,
+): Promise<ActionResult> {
   try {
     const admin = await getAdminOrThrow()
-    if (!z.uuid().safeParse(storeId).success || !z.uuid().safeParse(planId).success) {
+    const parsedPeriod = z.enum(['monthly', 'semiannual', 'yearly']).safeParse(period)
+    if (!z.uuid().safeParse(storeId).success || !z.uuid().safeParse(planId).success || !parsedPeriod.success) {
       return { ok: false, error: 'Dados inválidos' }
     }
     const store = await getStoreById(storeId)
     const plan = (await listPlans({ onlyActive: true })).find((p) => p.id === planId)
     if (!store || !plan) return { ok: false, error: 'Loja ou plano não encontrado' }
 
-    await setStorePlan(storeId, planId)
+    const amount = getPlanPrice(plan, parsedPeriod.data)
+    if (amount === null || amount <= 0) return { ok: false, error: 'Esse período não está configurado para o plano selecionado.' }
+
+    await setStorePlan(storeId, planId, parsedPeriod.data, amount)
     await recordAdminAction({
       adminUserId: admin.id,
       action: 'change_plan',
       targetStoreId: storeId,
-      details: { plan: plan.slug },
+      details: { plan: plan.slug, period: parsedPeriod.data, amount },
     })
     revalidatePath('/admin', 'layout')
-    return { ok: true, message: `Plano alterado para ${plan.name}` }
+    revalidatePath('/admin/usuarios')
+    revalidatePath('/painel/plano')
+    return { ok: true, message: `Plano ${plan.name} aplicado por ${parsedPeriod.data === 'monthly' ? '1 mês' : parsedPeriod.data === 'semiannual' ? '6 meses' : '1 ano'}` }
   } catch (error) {
     if (error instanceof UnauthorizedError) return { ok: false, error: FORBIDDEN }
     console.error('[admin] changePlan', error)
@@ -79,6 +89,7 @@ export async function deleteAccountAction(raw: unknown): Promise<ActionResult> {
     if (!snapshot) return { ok: false, error: 'Conta não encontrada.' }
     if (snapshot.userId === admin.id) return { ok: false, error: 'Você não pode excluir a própria conta.' }
     if (snapshot.role === 'admin') return { ok: false, error: 'Contas de administrador não podem ser excluídas por este fluxo.' }
+    if (!snapshot.storeId || snapshot.storeStatus !== 'blocked') return { ok: false, error: 'Só é possível excluir contas quando a loja está bloqueada.' }
     if (snapshot.email.trim().toLowerCase() !== parsed.data.confirmationEmail.trim().toLowerCase()) {
       return { ok: false, error: 'O e-mail digitado não corresponde à conta selecionada.' }
     }
@@ -137,6 +148,7 @@ export async function deleteAccountAction(raw: unknown): Promise<ActionResult> {
     if (result.status === 'not_found') return { ok: false, error: 'Conta não encontrada.' }
     if (result.status === 'self') return { ok: false, error: 'Você não pode excluir a própria conta.' }
     if (result.status === 'admin') return { ok: false, error: 'Contas de administrador não podem ser excluídas por este fluxo.' }
+    if (result.status === 'store_not_blocked') return { ok: false, error: 'Só é possível excluir contas quando a loja está bloqueada.' }
     if (result.status === 'email_mismatch') return { ok: false, error: 'O e-mail digitado não corresponde à conta selecionada.' }
     if (result.status === 'billing_cancellation_required') return { ok: false, error: 'A cobrança mudou durante a exclusão. Revise a assinatura e tente novamente.' }
     if (result.status === 'checkout_processing') return { ok: false, error: 'Há um checkout em processamento. Aguarde a confirmação antes de excluir a conta.' }
@@ -205,12 +217,30 @@ export async function updatePlanAction(raw: unknown): Promise<ActionResult> {
     if (existingPlan.slug === 'trial-default' && parsedData.trialDays < 1) {
       return { ok: false, error: 'Informe ao menos 1 dia de degustação', fieldErrors: { trialDays: ['Informe ao menos 1 dia'] } }
     }
-    const data = { ...parsedData, price: parsedData.price.toFixed(2) }
+    if (existingPlan.slug !== 'trial-default' && parsedData.monthlyPrice <= 0) {
+      return { ok: false, error: 'Informe um preço mensal maior que zero para o plano Pro.', fieldErrors: { monthlyPrice: ['Informe um preço mensal maior que zero'] } }
+    }
+    const data = {
+      ...parsedData,
+      price: parsedData.monthlyPrice.toFixed(2),
+      monthlyPrice: parsedData.monthlyPrice.toFixed(2),
+      semiannualPrice: parsedData.semiannualPrice?.toFixed(2) ?? null,
+      annualPrice: parsedData.annualPrice?.toFixed(2) ?? null,
+      billingPeriod: 'monthly' as const,
+    }
     await updatePlan(planId, data)
     await recordAdminAction({
       adminUserId: admin.id,
       action: 'update_plan',
-      details: { planId, productLimit: data.productLimit, trialDays: data.trialDays, price: data.price, billingPeriod: data.billingPeriod, isActive: data.isActive },
+      details: {
+        planId,
+        productLimit: data.productLimit,
+        trialDays: data.trialDays,
+        monthlyPrice: data.monthlyPrice,
+        semiannualPrice: data.semiannualPrice,
+        annualPrice: data.annualPrice,
+        isActive: data.isActive,
+      },
     })
     revalidatePath('/admin', 'layout')
     revalidatePath('/painel/plano')

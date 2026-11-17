@@ -7,7 +7,7 @@ import { user as userTable } from '@/lib/db/schema'
 import { LEGAL_DOCUMENT_VERSION } from '@/lib/legal'
 import { getMercadoPagoCredentialsForServer } from '@/lib/repositories/payment-settings'
 import { getMercadoPagoSubscriptionState, claimMercadoPagoCheckout, releaseMercadoPagoCheckout, saveMercadoPagoPreapproval } from '@/lib/repositories/mercadopago-subscriptions'
-import { listPlans } from '@/lib/repositories/plans'
+import { getPlanPrice, listPlans } from '@/lib/repositories/plans'
 import { getSellerContextOrThrow, UnauthorizedError } from '@/lib/session'
 import { getBaseUrl } from '@/lib/url'
 
@@ -15,13 +15,13 @@ export const runtime = 'nodejs'
 
 const checkoutSchema = z.object({
   cardToken: z.string().trim().min(1).max(2048),
+  billingPeriod: z.enum(['monthly', 'semiannual', 'yearly']),
   legalTermsAccepted: z.literal(true),
   recurringAccepted: z.literal(true),
 })
 
 const periodFrequency = {
   monthly: 1,
-  quarterly: 3,
   semiannual: 6,
   yearly: 12,
 } as const
@@ -48,8 +48,9 @@ export async function POST(request: NextRequest) {
 
     const activePlans = await listPlans({ onlyActive: true })
     const plan = activePlans.find((activePlan) => activePlan.slug === 'business') ?? null
-    if (!plan || Number(plan.price) <= 0) {
-      return NextResponse.json({ error: 'O plano ainda não tem um valor de cobrança configurado.' }, { status: 409 })
+    const planPrice = plan ? getPlanPrice(plan, parsed.data.billingPeriod) : null
+    if (!plan || planPrice === null || planPrice <= 0) {
+      return NextResponse.json({ error: 'O valor desta periodicidade ainda não foi configurado no plano Pro.' }, { status: 409 })
     }
 
     const credentials = await getMercadoPagoCredentialsForServer()
@@ -80,8 +81,8 @@ export async function POST(request: NextRequest) {
     const claimed = await claimMercadoPagoCheckout({
       storeId: context.store.id,
       externalReference,
-      amount: Number(plan.price).toFixed(2),
-      billingPeriod: plan.billingPeriod,
+      amount: planPrice.toFixed(2),
+      billingPeriod: parsed.data.billingPeriod,
       checkoutMode: 'recurring',
       paymentMethod: 'card',
       consentVersion: LEGAL_DOCUMENT_VERSION,
@@ -97,9 +98,9 @@ export async function POST(request: NextRequest) {
       card_token_id: parsed.data.cardToken,
       status: 'authorized',
       auto_recurring: {
-        frequency: periodFrequency[plan.billingPeriod],
+        frequency: periodFrequency[parsed.data.billingPeriod],
         frequency_type: 'months',
-        transaction_amount: Number(plan.price),
+        transaction_amount: planPrice,
         currency_id: 'BRL',
         ...(trialActive && currentState?.expiresAt ? { start_date: currentState.expiresAt.toISOString() } : {}),
       },
@@ -151,8 +152,8 @@ export async function POST(request: NextRequest) {
         preapprovalId: String(result.id),
         externalReference,
         status: preapprovalStatus,
-        amount: Number(plan.price).toFixed(2),
-        billingPeriod: plan.billingPeriod,
+        amount: planPrice.toFixed(2),
+        billingPeriod: parsed.data.billingPeriod,
         nextPaymentAt,
       })
       return NextResponse.json({ error: 'A assinatura não foi autorizada. Confira o cartão e tente novamente.' }, { status: 422 })
@@ -162,8 +163,8 @@ export async function POST(request: NextRequest) {
       preapprovalId: String(result.id),
       externalReference,
       status: preapprovalStatus,
-      amount: Number(plan.price).toFixed(2),
-      billingPeriod: plan.billingPeriod,
+      amount: planPrice.toFixed(2),
+      billingPeriod: parsed.data.billingPeriod,
       nextPaymentAt,
     })
     if (!saved) return NextResponse.json({ state: 'processing', message: 'Assinatura criada e aguardando sincronização.' }, { status: 202 })

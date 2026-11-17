@@ -42,6 +42,8 @@ export async function listAccounts(search?: string) {
       storeStatus: stores.status,
       subscriptionStatus: subscriptions.status,
       subscriptionExpiresAt: subscriptions.expiresAt,
+      mercadoPagoStatus: subscriptions.mercadoPagoStatus,
+      billingPeriod: subscriptions.mercadoPagoBillingPeriod,
       createdAt: user.createdAt,
       storeId: stores.id,
       storeName: stores.name,
@@ -74,8 +76,9 @@ export async function listAccounts(search?: string) {
     const blocked = account.status === 'blocked' || account.storeStatus === 'blocked'
     const planExpired = account.subscriptionStatus === 'expired' || Boolean(account.subscriptionExpiresAt && account.subscriptionExpiresAt.getTime() <= now)
     const paymentPending = ['past_due', 'pending', 'unpaid', 'suspended', 'paused', 'cancelled'].includes(account.subscriptionStatus ?? '') || account.storeStatus === 'suspended' || account.status === 'suspended'
+    const paymentReversed = ['refunded', 'charged_back', 'chargeback'].includes(account.mercadoPagoStatus ?? '')
     const lifecycleStatus: 'active' | 'suspended' | 'blocked' = blocked ? 'blocked' : planExpired || paymentPending ? 'suspended' : 'active'
-    const lifecycleReason = lifecycleStatus !== 'suspended' ? null : planExpired ? 'Plano expirado' : 'Pendência financeira'
+    const lifecycleReason = lifecycleStatus !== 'suspended' ? null : paymentReversed ? 'Pagamento contestado/estornado' : planExpired ? 'Plano expirado' : 'Pendência financeira'
 
     return { ...account, lifecycleStatus, lifecycleReason }
   })
@@ -126,6 +129,7 @@ export async function getAccountDeletionSnapshot(userId: string) {
       name: user.name,
       role: user.role,
       storeId: stores.id,
+      storeStatus: stores.status,
       preapprovalId: subscriptions.mercadoPagoPreapprovalId,
       paymentId: subscriptions.mercadoPagoPaymentId,
       paymentStatus: subscriptions.mercadoPagoStatus,
@@ -160,10 +164,11 @@ export async function deleteAccountPermanently(input: {
     }
 
     const [store] = await tx
-      .select({ id: stores.id, name: stores.name })
+      .select({ id: stores.id, name: stores.name, status: stores.status })
       .from(stores)
       .where(eq(stores.ownerUserId, target.id))
       .limit(1)
+    if (!store || store.status !== 'blocked') return { status: 'store_not_blocked' as const }
 
     const [billing] = store
       ? await tx

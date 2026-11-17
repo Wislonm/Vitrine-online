@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { Check, Minus } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
-import type { Plan } from '@/lib/repositories/plans'
+import { getPlanPrice, type Plan } from '@/lib/repositories/plans'
 import { formatBRL } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
@@ -20,13 +20,6 @@ const includedFeatures = [
   'Controle de estoque e disponibilidade',
   'Busca, paginação e organização do catálogo',
 ]
-
-const billingPeriodLabels = {
-  monthly: 'mês',
-  quarterly: 'trimestre',
-  semiannual: 'semestre',
-  yearly: 'ano',
-}
 
 export function Plans({ plans }: { plans: Plan[] }) {
   return (
@@ -53,14 +46,22 @@ export function Plans({ plans }: { plans: Plan[] }) {
                 <span className="ml-2 font-sans text-base font-normal text-muted-foreground">produtos</span>
               </p>
 
-              <p className="flex items-baseline gap-2">
-                {Number(plan.price) > 0 ? (
-                  <>
-                    <span className="font-display text-2xl font-semibold">{formatBRL(Number(plan.price))}</span>
-                    <span className="text-sm text-muted-foreground">/{billingPeriodLabels[plan.billingPeriod]}</span>
-                  </>
-                ) : <span className="text-sm text-muted-foreground">Valor a definir</span>}
-              </p>
+              <ul aria-label="Valores do Plano Pro por período" className="grid grid-cols-3 gap-2">
+                {[
+                  { period: 'monthly', label: 'Mensal', suffix: '/mês' },
+                  { period: 'semiannual', label: 'Semestral', suffix: '/semestre' },
+                  { period: 'yearly', label: 'Anual', suffix: '/ano' },
+                ].map((item) => {
+                  const price = getPlanPrice(plan, item.period as 'monthly' | 'semiannual' | 'yearly')
+                  return (
+                    <li key={item.period} className="flex min-w-0 flex-col gap-1 rounded-2xl bg-muted p-3">
+                      <span className="text-xs text-muted-foreground">{item.label}</span>
+                      <strong className="text-xs font-semibold sm:text-sm">{price && price > 0 ? formatBRL(price) : 'A definir'}</strong>
+                      <span className="text-xs text-muted-foreground">{price && price > 0 ? item.suffix : 'Indisponível'}</span>
+                    </li>
+                  )
+                })}
+              </ul>
 
               <ul className="flex flex-col gap-3 text-sm">
                 {featureRows.map((row) => {
@@ -79,7 +80,7 @@ export function Plans({ plans }: { plans: Plan[] }) {
 
               <div className="mt-auto flex flex-col gap-3">
                 <Link href="/cadastro" className={cn(buttonVariants({ size: 'lg' }))}>Começar 7 dias grátis</Link>
-                <p className="text-center text-xs text-muted-foreground">Acesso completo durante o teste, sem cobrança automática. Checkout Mercado Pago em preparação.</p>
+                <p className="text-center text-xs text-muted-foreground">Após o teste, escolha a periodicidade e pague por cartão ou Pix. A renovação automática é opcional.</p>
               </div>
             </article>
           ))}

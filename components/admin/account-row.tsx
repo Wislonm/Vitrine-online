@@ -17,7 +17,8 @@ import {
 import { Button } from '@/components/ui/button'
 import { NativeSelect } from '@/components/ui/native-select'
 import { Input } from '@/components/ui/input'
-import { formatDate } from '@/lib/format'
+import { formatBRL, formatDate } from '@/lib/format'
+import type { CheckoutBillingPeriod } from '@/lib/repositories/plans'
 import { cn } from '@/lib/utils'
 
 export type AccountRowData = {
@@ -30,10 +31,12 @@ export type AccountRowData = {
   lifecycleReason: string | null
   createdAt: string
   storeId: string | null
+  storeStatus: string | null
   storeName: string | null
   storeSlug: string | null
   planId: string | null
   planName: string | null
+  billingPeriod: string | null
   productLimit: number | null
   productCount: number
 }
@@ -44,7 +47,7 @@ export function AccountRow({
   currentAdminId,
 }: {
   account: AccountRowData
-  plans: { id: string; name: string }[]
+  plans: { id: string; name: string; periods: { period: CheckoutBillingPeriod; amount: number }[] }[]
   currentAdminId: string
 }) {
   const [pending, startTransition] = useTransition()
@@ -56,15 +59,41 @@ export function AccountRow({
   const isSelf = account.userId === currentAdminId
   const isAdmin = account.role === 'admin'
   const confirmationMatches = confirmationEmail.trim().toLowerCase() === account.email.trim().toLowerCase()
+  const currentPlan = plans.find((plan) => plan.id === account.planId)
+  const currentPlanPeriods = currentPlan?.periods ?? []
+  const initialPeriod = currentPlanPeriods.find((option) => option.period === account.billingPeriod)?.period
+    ?? currentPlanPeriods[0]?.period
+    ?? 'monthly'
+  const [selectedPeriod, setSelectedPeriod] = useState<CheckoutBillingPeriod>(initialPeriod)
 
-  function changePlan(planId: string) {
+  function assignPlan(planId: string, period: CheckoutBillingPeriod) {
     if (!account.storeId) return
     const storeId = account.storeId
+    const previousPeriod = selectedPeriod
+    setSelectedPeriod(period)
     startTransition(async () => {
-      const result = await changeStorePlanAction(storeId, planId)
+      const result = await changeStorePlanAction(storeId, planId, period)
       if (result.ok) toast.success(result.message ?? 'Plano alterado')
-      else toast.error(result.error)
+      else {
+        setSelectedPeriod(previousPeriod)
+        toast.error(result.error)
+      }
     })
+  }
+
+  function changePlan(planId: string) {
+    const plan = plans.find((option) => option.id === planId)
+    const period = plan?.periods.find((option) => option.period === selectedPeriod)?.period ?? plan?.periods[0]?.period
+    if (!period) {
+      toast.error('Esse plano não tem períodos configurados.')
+      return
+    }
+    assignPlan(planId, period)
+  }
+
+  function changePeriod(value: string) {
+    const period = currentPlanPeriods.find((option) => option.period === value)?.period
+    if (account.planId && period) assignPlan(account.planId, period)
   }
 
   function toggleStatus() {
@@ -141,18 +170,36 @@ export function AccountRow({
 
       <div className="flex flex-wrap items-center gap-2">
         {account.storeId && (
-          <div className="w-40">
+          <div className="flex min-w-0 flex-1 flex-wrap gap-2 sm:flex-none">
             <NativeSelect
-              aria-label={`Plano de ${account.userName}`}
+              id={`account-plan-${account.storeId}`}
+              aria-label={`Plano da loja ${account.storeName ?? account.userName}`}
               value={account.planId ?? ''}
               disabled={pending}
-              onChange={(e) => changePlan(e.target.value)}
-              className="h-10 bg-background"
+              onChange={(event) => changePlan(event.target.value)}
+              className="h-10 min-w-40 flex-1 bg-background sm:flex-none"
             >
+              {!account.planId && <option value="" disabled>Selecione um plano</option>}
               {account.planId && !plans.some((plan) => plan.id === account.planId) && <option value={account.planId} disabled>{account.planName ?? 'Plano interno'}</option>}
               {plans.map((plan) => (
                 <option key={plan.id} value={plan.id}>
                   {plan.name}
+                </option>
+              ))}
+            </NativeSelect>
+            <NativeSelect
+              id={`account-period-${account.storeId}`}
+              aria-label={`Período do plano da loja ${account.storeName ?? account.userName}`}
+              value={currentPlanPeriods.some((option) => option.period === selectedPeriod) ? selectedPeriod : currentPlanPeriods[0]?.period ?? ''}
+              disabled={pending || !account.planId || currentPlanPeriods.length === 0}
+              onChange={(event) => changePeriod(event.target.value)}
+              className="h-10 min-w-36 flex-1 bg-background sm:flex-none"
+            >
+              {currentPlanPeriods.length === 0 ? (
+                <option value="">Sem períodos</option>
+              ) : currentPlanPeriods.map((option) => (
+                <option key={option.period} value={option.period}>
+                  {`${option.period === 'monthly' ? 'Mensal' : option.period === 'semiannual' ? 'Semestral' : 'Anual'} · ${formatBRL(option.amount)}`}
                 </option>
               ))}
             </NativeSelect>
@@ -164,9 +211,11 @@ export function AccountRow({
               {blocked ? <LockOpen aria-hidden="true" /> : <Lock aria-hidden="true" />}
               {blocked ? 'Desbloquear' : 'Bloquear'}
             </Button>
-            <Button type="button" variant="destructive" size="sm" disabled={pending} onClick={() => changeDeleteDialog(true)}>
-              <Trash2 aria-hidden="true" />Excluir
-            </Button>
+            {account.storeStatus === 'blocked' && (
+              <Button type="button" variant="destructive" size="sm" disabled={pending} onClick={() => changeDeleteDialog(true)}>
+                <Trash2 aria-hidden="true" />Excluir
+              </Button>
+            )}
           </>
         )}
       </div>

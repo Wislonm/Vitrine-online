@@ -3,7 +3,7 @@ import { Search } from 'lucide-react'
 import { AccountStatusTabs } from '@/components/admin/account-status-tabs'
 import { Input } from '@/components/ui/input'
 import { listAccounts } from '@/lib/repositories/admin'
-import { listPlans } from '@/lib/repositories/plans'
+import { getPlanPeriodPrices, listPlans } from '@/lib/repositories/plans'
 import { requireAdmin } from '@/lib/session'
 
 export const metadata: Metadata = { title: 'Usuários e lojas' }
@@ -16,7 +16,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
   return (
     <>
       <h1 className="mb-2 text-3xl font-semibold sm:text-4xl">Usuários e lojas</h1>
-      <p className="mb-8 max-w-2xl text-sm text-muted-foreground">Suspensas: plano expirado ou pendência financeira. Bloqueadas: contas impedidas de acessar por descumprimento das regras.</p>
+      <p className="mb-8 max-w-2xl text-sm text-muted-foreground">Suspensas: plano expirado ou pendência financeira. Bloqueadas: contas impedidas de acessar por descumprimento das regras. A exclusão fica disponível somente para lojas bloqueadas; planos podem ser atribuídos manualmente na linha do usuário.</p>
 
       <form role="search" className="relative mb-6">
         <Search className="pointer-events-none absolute top-1/2 left-5 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
@@ -25,7 +25,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
 
       <AccountStatusTabs
         currentAdminId={admin.id}
-        plans={plans.map((plan) => ({ id: plan.id, name: plan.name }))}
+        plans={plans.map((plan) => ({ id: plan.id, name: plan.name, periods: getPlanPeriodPrices(plan) }))}
         accounts={accounts.map((account) => ({
           userId: account.userId,
           userName: account.userName,
@@ -36,10 +36,12 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
           lifecycleReason: account.lifecycleReason,
           createdAt: account.createdAt.toISOString(),
           storeId: account.storeId,
+          storeStatus: account.storeStatus,
           storeName: account.storeName,
           storeSlug: account.storeSlug,
           planId: account.planId,
           planName: account.planName,
+          billingPeriod: account.billingPeriod,
           productLimit: account.productLimit,
           productCount: account.productCount,
         }))}

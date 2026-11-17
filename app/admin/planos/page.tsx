@@ -22,7 +22,7 @@ export default async function AdminPlansPage() {
     <>
       <h1 className="mb-2 text-3xl font-semibold sm:text-4xl">Planos</h1>
       <p className="mb-8 max-w-xl text-muted-foreground">
-        Configure os 7 dias do plano de degustação e o valor e a periodicidade do Pro. O plano de degustação é interno e não aparece como opção de compra.
+        Configure o período de degustação e os preços mensal, semestral e anual do Pro. Períodos sem valor não aparecem no checkout. O plano de degustação é interno e não aparece como opção de compra.
       </p>
       <div className="grid gap-4 md:grid-cols-2">
         {plans.map((plan) => (
@@ -37,7 +37,9 @@ export default async function AdminPlansPage() {
               productLimit: plan.productLimit,
               trialDays: plan.trialDays,
               price: plan.price,
-              billingPeriod: plan.billingPeriod as 'monthly' | 'quarterly' | 'semiannual' | 'yearly',
+              monthlyPrice: plan.monthlyPrice,
+              semiannualPrice: plan.semiannualPrice,
+              annualPrice: plan.annualPrice,
               isActive: plan.isActive,
               features: plan.features as Record<string, boolean | undefined>,
             }}

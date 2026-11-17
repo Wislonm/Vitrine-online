@@ -6,7 +6,7 @@ import { MercadoPagoTransparentCheckout } from '@/components/panel/mercadopago-t
 import { CancelMercadoPagoSubscriptionButton } from '@/components/panel/cancel-mercadopago-subscription-button'
 import { formatBRL } from '@/lib/format'
 import { getMercadoPagoSettingsForAdmin } from '@/lib/repositories/payment-settings'
-import { listPlans } from '@/lib/repositories/plans'
+import { getPlanPeriodPrices, getPlanPrice, listPlans } from '@/lib/repositories/plans'
 import { requireSellerContext } from '@/lib/session'
 import { getPlanUsage } from '@/lib/services/plan-usage'
 
@@ -42,22 +42,33 @@ export default async function PlanPage() {
   const contractPlan = plans.find((plan) => plan.slug === 'business' && plan.isActive) ?? plans.find((plan) => plan.isActive && plan.slug !== 'trial-default') ?? null
   const trialDurationDays = plans.find((plan) => plan.slug === 'trial-default')?.trialDays ?? 7
   const trialEnd = usage.subscription?.expiresAt ?? null
-  const planPrice = contractPlan ? Number(contractPlan.price) : 0
+  const periodOptions = contractPlan ? getPlanPeriodPrices(contractPlan) : []
+  const defaultPeriod = periodOptions[0]?.period ?? 'monthly'
+  const planPrice = contractPlan ? getPlanPrice(contractPlan, 'monthly') ?? periodOptions[0]?.amount ?? 0 : 0
   const checkoutConfigured = Boolean(paymentSettings.publicKey && paymentSettings.hasAccessToken && paymentSettings.hasWebhookSecret)
   const environmentSafe = paymentSettings.environment === 'production' ? process.env.VERCEL_ENV === 'production' : process.env.VERCEL_ENV !== 'production'
   const canStartContract = usage.subscriptionExpired || usage.isTrial
-  const checkoutAvailable = canStartContract && planPrice > 0 && checkoutConfigured && environmentSafe
-  const checkoutUnavailableMessage = planPrice <= 0
-    ? 'O valor do plano ainda não foi configurado.'
+  const checkoutAvailable = canStartContract && periodOptions.length > 0 && checkoutConfigured && environmentSafe
+  const checkoutUnavailableMessage = periodOptions.length === 0
+    ? 'Configure ao menos um preço no plano Pro para liberar o checkout.'
     : !environmentSafe
       ? paymentSettings.environment === 'test' ? 'Credenciais de teste não podem processar cobranças em produção.' : 'Credenciais de produção só podem ser usadas no ambiente de produção.'
       : !paymentSettings.hasWebhookSecret
         ? 'Configure o segredo do webhook do Mercado Pago no painel administrativo para liberar o checkout com confirmação segura.'
         : 'O checkout do Mercado Pago ainda não está configurado.'
   const nextPaymentAt = usage.subscription?.mercadoPagoNextPaymentAt ?? null
+  const paymentReversed = ['refunded', 'charged_back', 'chargeback'].includes(usage.subscription?.mercadoPagoStatus ?? '')
   const pixPaymentExpired = Boolean(usage.subscription?.mercadoPagoPaymentMethod === 'pix' && usage.subscription.mercadoPagoPixExpiresAt && usage.subscription.mercadoPagoPixExpiresAt.getTime() <= Date.now() && ['pending', 'in_process'].includes(usage.subscription.mercadoPagoStatus ?? ''))
   const paymentPending = Boolean(usage.subscription?.mercadoPagoCheckoutStartedAt || usage.subscription?.mercadoPagoStatus === 'processing' || (['pending', 'in_process'].includes(usage.subscription?.mercadoPagoStatus ?? '') && !pixPaymentExpired))
+  const storedPeriod = usage.subscription?.mercadoPagoBillingPeriod
+  const selectedPeriod = paymentPending && storedPeriod && ['monthly', 'semiannual', 'yearly'].includes(storedPeriod) ? storedPeriod as 'monthly' | 'semiannual' | 'yearly' : defaultPeriod
+  const selectedAmount = paymentPending && usage.subscription?.mercadoPagoAmount
+    ? Number(usage.subscription.mercadoPagoAmount)
+    : periodOptions.find((option) => option.period === selectedPeriod)?.amount ?? planPrice
   const checkoutInitialProps = {
+    amount: selectedAmount,
+    billingPeriod: selectedPeriod,
+    periodOptions,
     initialPaymentMethod: paymentPending || pixPaymentExpired ? usage.subscription?.mercadoPagoPaymentMethod ?? 'card' : 'card',
     initialCheckoutMode: paymentPending && usage.subscription?.mercadoPagoCheckoutMode === 'recurring' ? 'recurring' : 'one_time',
     initialPixQrCode: usage.subscription?.mercadoPagoPixQrCode ?? null,
@@ -67,9 +78,11 @@ export default async function PlanPage() {
     trialEndsAt: usage.isTrial && !usage.subscriptionExpired ? trialEnd?.toISOString() ?? null : null,
   } as const
   const pageTitle = usage.subscriptionExpired ? 'Contratar plano' : 'Meu plano'
-  const unavailableDescription = usage.isTrial
-    ? 'Seu período de teste terminou. Contrate o plano para reativar o painel.'
-    : 'Sua assinatura está suspensa. Regularize o plano para voltar a gerenciar a loja.'
+  const unavailableDescription = paymentReversed
+    ? 'O Mercado Pago confirmou um estorno ou contestação. Sua vitrine foi suspensa; faça um novo pagamento para reativá-la.'
+    : usage.isTrial
+      ? 'Seu período de teste terminou. Contrate o plano para reativar o painel.'
+      : 'Sua assinatura está suspensa. Regularize o plano para voltar a gerenciar a loja.'
 
   return (
     <>
@@ -87,7 +100,7 @@ export default async function PlanPage() {
             </div>
             <div className="flex flex-col items-end gap-2">
               <span className={`rounded-full px-3 py-1.5 text-xs font-medium ${usage.subscriptionExpired ? 'bg-destructive/10 text-destructive' : 'bg-background text-foreground'}`}>
-                {usage.subscriptionExpired ? usage.isTrial ? 'Teste encerrado' : 'Assinatura suspensa' : usage.isTrial ? 'Teste grátis' : usage.subscription?.mercadoPagoStatus === 'cancelled' ? 'Renovação cancelada' : 'Ativo'}
+                {usage.subscriptionExpired ? paymentReversed ? 'Pagamento estornado' : usage.isTrial ? 'Teste encerrado' : 'Assinatura suspensa' : usage.isTrial ? 'Teste grátis' : usage.subscription?.mercadoPagoStatus === 'cancelled' ? 'Renovação cancelada' : 'Ativo'}
               </span>
               {usage.isTrial && !usage.subscriptionExpired && <Link href="#contratar" className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">Seja Pro</Link>}
             </div>
@@ -103,7 +116,9 @@ export default async function PlanPage() {
             </div>
           ) : usage.subscriptionExpired ? (
             <div className="rounded-2xl bg-background p-4 text-sm leading-relaxed text-muted-foreground">
-              O painel está bloqueado, mas seus dados e sua vitrine permanecem salvos. {usage.isTrial ? 'Conclua a contratação para voltar a gerenciar a loja.' : 'Regularize a assinatura para voltar a gerenciar a loja.'}
+              {paymentReversed
+                ? 'O Mercado Pago informou um estorno ou contestação do pagamento. Sua vitrine pública foi suspensa. Faça um novo pagamento para reativar o Pro.'
+                : `O painel está bloqueado, mas seus dados e sua vitrine permanecem salvos. ${usage.isTrial ? 'Conclua a contratação para voltar a gerenciar a loja.' : 'Regularize a assinatura para voltar a gerenciar a loja.'}`}
             </div>
           ) : usage.subscription?.mercadoPagoStatus === 'cancelled' && trialEnd ? (
             <div className="rounded-2xl bg-background p-4 text-sm leading-relaxed text-muted-foreground">
@@ -138,7 +153,11 @@ export default async function PlanPage() {
           </div>
           <div className="rounded-2xl bg-background p-4 text-sm">
             <span className="font-semibold">Valor do plano: </span>
-            {contractPlan && Number(contractPlan.price) > 0 ? `${formatBRL(Number(contractPlan.price))} / ${billingPeriodLabels[contractPlan.billingPeriod]}` : 'A definir'}
+            {periodOptions.length > 0
+              ? usage.isTrial
+                ? `A partir de ${formatBRL(planPrice)} / ${billingPeriodLabels[defaultPeriod]}`
+                : `${formatBRL(Number(usage.subscription?.mercadoPagoAmount ?? planPrice))} / ${billingPeriodLabels[usage.subscription?.mercadoPagoBillingPeriod ?? defaultPeriod]}`
+              : 'A definir'}
           </div>
           {usage.subscription?.mercadoPagoStatus === 'authorized' && <CancelMercadoPagoSubscriptionButton />}
         </section>
@@ -157,8 +176,6 @@ export default async function PlanPage() {
                 {...checkoutInitialProps}
                 initiallyAwaiting
                 publicKey={paymentSettings.publicKey}
-                amount={planPrice}
-                billingPeriod={usage.subscription?.mercadoPagoBillingPeriod ?? contractPlan?.billingPeriod ?? 'monthly'}
                 planName={contractPlan?.name ?? 'Pro'}
                 payerEmail={user.email}
                 identificationType={user.documentType}
@@ -168,8 +185,6 @@ export default async function PlanPage() {
               <MercadoPagoTransparentCheckout
                 {...checkoutInitialProps}
                 publicKey={paymentSettings.publicKey}
-                amount={planPrice}
-                billingPeriod={contractPlan!.billingPeriod}
                 planName={contractPlan!.name}
                 payerEmail={user.email}
                 identificationType={user.documentType}
