@@ -14,12 +14,12 @@ import { formatBRL } from '@/lib/format'
 
 type MercadoPagoCardData = {
   token?: string
+  cardholderEmail?: string
   paymentMethodId?: string
   issuerId?: string | number
   installments?: string | number
   identificationType?: string
   identificationNumber?: string
-  cardholderEmail?: string
 }
 type MercadoPagoCardForm = { getCardFormData: () => MercadoPagoCardData; unmount?: () => void }
 type MercadoPagoCardFormOptions = {
@@ -214,7 +214,8 @@ export function MercadoPagoTransparentCheckout({
           }
 
           const cardData = cardForm.getCardFormData()
-          if (!cardData.token || !cardData.paymentMethodId) {
+          const recurringMode = recurring
+          if (!cardData.token || (!recurringMode && !cardData.paymentMethodId)) {
             setError('Não foi possível tokenizar o cartão. Confira os dados e tente novamente.')
             return
           }
@@ -223,7 +224,6 @@ export function MercadoPagoTransparentCheckout({
           setError(null)
           setMessage(null)
           try {
-            const recurringMode = recurring
             const endpoint = recurringMode ? '/api/checkout/mercado-pago' : '/api/checkout/mercado-pago/payment'
             const body = recurringMode
               ? { cardToken: cardData.token, legalTermsAccepted: true, recurringAccepted: true }

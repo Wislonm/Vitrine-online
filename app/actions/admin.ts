@@ -3,7 +3,8 @@
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { getAdminOrThrow, UnauthorizedError } from '@/lib/session'
-import { getStoreById, getUserById, recordAdminAction, setUserStatus } from '@/lib/repositories/admin'
+import { deleteAccountPermanently, getAccountDeletionSnapshot, getStoreById, getUserById, recordAdminAction, setUserStatus } from '@/lib/repositories/admin'
+import { isAssetOwnedByStore, storage } from '@/lib/storage'
 import { listPlans, setStorePlan, updatePlan } from '@/lib/repositories/plans'
 import { getMercadoPagoCredentialsForServer, getMercadoPagoSettingsForAdmin, saveMercadoPagoSettings } from '@/lib/repositories/payment-settings'
 import { mercadoPagoSettingsSchema, planUpdateSchema, zodFieldErrors, type ActionResult } from '@/lib/validators'
@@ -61,6 +62,133 @@ export async function setAccountStatusAction(
     if (error instanceof UnauthorizedError) return { ok: false, error: FORBIDDEN }
     console.error('[admin] setStatus', error)
     return { ok: false, error: 'Não foi possível atualizar a conta.' }
+  }
+}
+
+export async function deleteAccountAction(raw: unknown): Promise<ActionResult> {
+  try {
+    const admin = await getAdminOrThrow()
+    const parsed = z.object({
+      userId: z.string().trim().min(1).max(255),
+      confirmationEmail: z.string().trim().email().max(255),
+      confirmed: z.literal(true),
+    }).safeParse(raw)
+    if (!parsed.success) return { ok: false, error: 'Confirme a exclusão digitando o e-mail exato da conta.' }
+
+    const snapshot = await getAccountDeletionSnapshot(parsed.data.userId)
+    if (!snapshot) return { ok: false, error: 'Conta não encontrada.' }
+    if (snapshot.userId === admin.id) return { ok: false, error: 'Você não pode excluir a própria conta.' }
+    if (snapshot.role === 'admin') return { ok: false, error: 'Contas de administrador não podem ser excluídas por este fluxo.' }
+    if (snapshot.email.trim().toLowerCase() !== parsed.data.confirmationEmail.trim().toLowerCase()) {
+      return { ok: false, error: 'O e-mail digitado não corresponde à conta selecionada.' }
+    }
+    if (snapshot.checkoutStartedAt && !snapshot.preapprovalId && !snapshot.paymentId) {
+      return { ok: false, error: 'Há um pagamento sendo iniciado. Aguarde a confirmação antes de excluir a conta.' }
+    }
+
+    const terminalPreapprovalStatuses = ['cancelled', 'canceled', 'rejected', 'expired']
+    const needsPreapprovalCancellation = Boolean(snapshot.preapprovalId && !terminalPreapprovalStatuses.includes(snapshot.paymentStatus ?? ''))
+    const needsPendingPaymentResolution = Boolean(snapshot.paymentId && ['pending', 'in_process', 'processing'].includes(snapshot.paymentStatus ?? ''))
+    let cancelledPreapprovalId: string | null = null
+    let resolvedPaymentId: string | null = null
+
+    if (needsPreapprovalCancellation || needsPendingPaymentResolution) {
+      const credentials = await getMercadoPagoCredentialsForServer()
+      if (!credentials?.accessToken) return { ok: false, error: 'Não foi possível validar as cobranças no Mercado Pago. A conta não foi excluída.' }
+
+      if (needsPreapprovalCancellation && snapshot.preapprovalId) {
+        const response = await fetch(`https://api.mercadopago.com/preapproval/${encodeURIComponent(snapshot.preapprovalId)}`, {
+          method: 'PUT',
+          headers: { Authorization: `Bearer ${credentials.accessToken}`, 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({ status: 'cancelled' }),
+          cache: 'no-store',
+          signal: AbortSignal.timeout(10_000),
+        })
+        if (!response.ok) return { ok: false, error: 'Não foi possível cancelar a renovação no Mercado Pago. A conta não foi excluída.' }
+        const cancellation = await response.json() as { status?: string }
+        if (cancellation.status !== 'cancelled') return { ok: false, error: 'O Mercado Pago não confirmou o cancelamento. A conta não foi excluída.' }
+        cancelledPreapprovalId = snapshot.preapprovalId
+      }
+
+      if (needsPendingPaymentResolution && snapshot.paymentId) {
+        const response = await fetch(`https://api.mercadopago.com/v1/payments/${encodeURIComponent(snapshot.paymentId)}`, {
+          method: 'PUT',
+          headers: { Authorization: `Bearer ${credentials.accessToken}`, 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({ status: 'canceled' }),
+          cache: 'no-store',
+          signal: AbortSignal.timeout(10_000),
+        })
+        if (!response.ok) return { ok: false, error: 'Não foi possível encerrar o pagamento pendente no Mercado Pago. A conta não foi excluída.' }
+        const paymentResolution = await response.json() as { status?: string }
+        if (!['canceled', 'cancelled', 'rejected', 'approved', 'expired'].includes(paymentResolution.status ?? '')) {
+          return { ok: false, error: 'O Mercado Pago não confirmou o encerramento do pagamento pendente. A conta não foi excluída.' }
+        }
+        resolvedPaymentId = snapshot.paymentId
+      }
+    }
+
+    const result = await deleteAccountPermanently({
+      userId: parsed.data.userId,
+      adminUserId: admin.id,
+      confirmationEmail: parsed.data.confirmationEmail,
+      cancelledPreapprovalId,
+      resolvedPaymentId,
+    })
+    if (result.status === 'not_found') return { ok: false, error: 'Conta não encontrada.' }
+    if (result.status === 'self') return { ok: false, error: 'Você não pode excluir a própria conta.' }
+    if (result.status === 'admin') return { ok: false, error: 'Contas de administrador não podem ser excluídas por este fluxo.' }
+    if (result.status === 'email_mismatch') return { ok: false, error: 'O e-mail digitado não corresponde à conta selecionada.' }
+    if (result.status === 'billing_cancellation_required') return { ok: false, error: 'A cobrança mudou durante a exclusão. Revise a assinatura e tente novamente.' }
+    if (result.status === 'checkout_processing') return { ok: false, error: 'Há um checkout em processamento. Aguarde a confirmação antes de excluir a conta.' }
+
+    const ownedAssets = result.storeId
+      ? result.assetUrls.filter((url) => {
+          try {
+            const hostname = new URL(url).hostname
+            return hostname.endsWith('.public.blob.vercel-storage.com') && isAssetOwnedByStore(url, result.storeId!)
+          } catch {
+            return false
+          }
+        })
+      : []
+    let cleanupFailures = 0
+    if (ownedAssets.length > 0) {
+      if (!storage.isConfigured()) {
+        cleanupFailures = ownedAssets.length
+      } else {
+        const cleanupResults = await Promise.allSettled(ownedAssets.map((url) => storage.remove(url)))
+        cleanupFailures = cleanupResults.filter((cleanup) => cleanup.status === 'rejected').length
+      }
+    }
+
+    if (cleanupFailures > 0) {
+      try {
+        await recordAdminAction({
+          adminUserId: admin.id,
+          action: 'delete_account_media_cleanup_failed',
+          details: { deletedUserId: result.userId, failedAssetCount: cleanupFailures },
+        })
+      } catch (auditError) {
+        console.error('[admin] deleteAccountMediaAudit', auditError)
+      }
+    }
+
+    try {
+      revalidatePath('/admin', 'layout')
+      revalidatePath('/admin/usuarios')
+    } catch (revalidationError) {
+      console.error('[admin] deleteAccountRevalidation', revalidationError)
+    }
+    return {
+      ok: true,
+      message: cleanupFailures > 0
+        ? `Conta excluída. ${cleanupFailures} arquivo(s) de mídia precisam de revisão no log de auditoria.`
+        : 'Conta e dados relacionados excluídos permanentemente.',
+    }
+  } catch (error) {
+    if (error instanceof UnauthorizedError) return { ok: false, error: FORBIDDEN }
+    console.error('[admin] deleteAccount', error)
+    return { ok: false, error: 'Não foi possível concluir a exclusão. Os dados locais permanecem; confira o status de cobrança no Mercado Pago antes de tentar novamente.' }
   }
 }
 

@@ -47,8 +47,14 @@ export default async function PlanPage() {
   const environmentSafe = paymentSettings.environment === 'production' ? process.env.VERCEL_ENV === 'production' : process.env.VERCEL_ENV !== 'production'
   const canStartContract = usage.subscriptionExpired || usage.isTrial
   const checkoutAvailable = canStartContract && planPrice > 0 && checkoutConfigured && environmentSafe
+  const checkoutUnavailableMessage = planPrice <= 0
+    ? 'O valor do plano ainda não foi configurado.'
+    : !environmentSafe
+      ? paymentSettings.environment === 'test' ? 'Credenciais de teste não podem processar cobranças em produção.' : 'Credenciais de produção só podem ser usadas no ambiente de produção.'
+      : !paymentSettings.hasWebhookSecret
+        ? 'Configure o segredo do webhook do Mercado Pago no painel administrativo para liberar o checkout com confirmação segura.'
+        : 'O checkout do Mercado Pago ainda não está configurado.'
   const nextPaymentAt = usage.subscription?.mercadoPagoNextPaymentAt ?? null
-  const renewalDate = nextPaymentAt ? formatDate(nextPaymentAt) : null
   const pixPaymentExpired = Boolean(usage.subscription?.mercadoPagoPaymentMethod === 'pix' && usage.subscription.mercadoPagoPixExpiresAt && usage.subscription.mercadoPagoPixExpiresAt.getTime() <= Date.now() && ['pending', 'in_process'].includes(usage.subscription.mercadoPagoStatus ?? ''))
   const paymentPending = Boolean(usage.subscription?.mercadoPagoCheckoutStartedAt || usage.subscription?.mercadoPagoStatus === 'processing' || (['pending', 'in_process'].includes(usage.subscription?.mercadoPagoStatus ?? '') && !pixPaymentExpired))
   const checkoutInitialProps = {
@@ -172,21 +178,9 @@ export default async function PlanPage() {
             ) : !usage.subscriptionExpired && !usage.isTrial ? (
               <p className="rounded-2xl bg-muted p-4 text-sm leading-relaxed text-muted-foreground">Sua assinatura Pro está ativa. Veja acima a data prevista para a próxima renovação.</p>
             ) : !usage.subscriptionExpired ? (
-              <p className="rounded-2xl bg-muted p-4 text-sm leading-relaxed text-muted-foreground">
-                {planPrice <= 0
-                  ? 'O valor do plano ainda não foi configurado.'
-                  : !environmentSafe
-                    ? paymentSettings.environment === 'test' ? 'Credenciais de teste não podem processar cobranças em produção.' : 'Credenciais de produção só podem ser usadas no ambiente de produção.'
-                    : 'A contratação está temporariamente indisponível. A equipe da plataforma precisa concluir a configuração do Mercado Pago.'}
-              </p>
+              <p className="rounded-2xl bg-muted p-4 text-sm leading-relaxed text-muted-foreground">{checkoutUnavailableMessage}</p>
             ) : (
-              <p className="rounded-2xl bg-muted p-4 text-sm leading-relaxed text-muted-foreground">
-                {planPrice <= 0
-                  ? 'O valor do plano ainda não foi configurado.'
-                  : !environmentSafe
-                    ? paymentSettings.environment === 'test' ? 'Credenciais de teste não podem processar cobranças em produção.' : 'Credenciais de produção só podem ser usadas no ambiente de produção.'
-                    : 'O checkout ainda não está configurado. A equipe da plataforma precisa concluir a configuração do Mercado Pago.'}
-              </p>
+              <p className="rounded-2xl bg-muted p-4 text-sm leading-relaxed text-muted-foreground">{checkoutUnavailableMessage}</p>
             )}
           </div>
         </section>
