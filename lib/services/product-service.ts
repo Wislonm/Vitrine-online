@@ -34,7 +34,7 @@ export async function createProduct(storeId: string, input: ProductInput): Promi
   if (!result.ok) {
     return {
       ok: false,
-      error: `Você atingiu o limite de ${result.limit} produtos do plano único. Exclua um produto para liberar espaço.`,
+      error: `Você atingiu o limite de ${result.limit} produtos do plano Pro. Exclua um produto para liberar espaço.`,
     }
   }
   return { ok: true, productId: result.product.id }

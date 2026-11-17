@@ -3,7 +3,7 @@ import { Plus } from 'lucide-react'
 const questions = [
   {
     q: 'Preciso pagar para criar minha vitrine?',
-    a: 'Não. Cada nova conta recebe 7 dias grátis com acesso completo ao painel e aos recursos do plano único, sem cartão e sem cobrança automática durante o teste.',
+    a: 'Não. Cada nova conta recebe 7 dias grátis com acesso completo ao painel e aos recursos do plano Pro, sem cartão e sem cobrança durante o teste.',
   },
   {
     q: 'O cliente paga pelo site?',
@@ -19,7 +19,7 @@ const questions = [
   },
   {
     q: 'O que acontece após os 7 dias grátis?',
-    a: 'O painel fica bloqueado até a contratação do plano único. Seus dados e sua vitrine permanecem salvos. A contratação online estará disponível quando a integração de pagamento for concluída.',
+    a: 'O painel fica bloqueado até a contratação do plano Pro. Seus dados e sua vitrine permanecem salvos. No checkout você escolhe pagamento único por cartão ou Pix, ou renovação recorrente no cartão.',
   },
   {
     q: 'Posso usar meu próprio domínio?',
