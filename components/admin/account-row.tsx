@@ -146,7 +146,6 @@ export function AccountRow({
             <label htmlFor={`account-plan-${account.storeId}`} className="text-xs font-medium">Aplicar plano manualmente</label>
             <NativeSelect
               id={`account-plan-${account.storeId}`}
-              aria-describedby={`account-plan-help-${account.storeId}`}
               value={account.planId ?? ''}
               disabled={pending}
               onChange={(e) => changePlan(e.target.value)}
@@ -160,9 +159,6 @@ export function AccountRow({
                 </option>
               ))}
             </NativeSelect>
-            <p id={`account-plan-help-${account.storeId}`} className="text-xs leading-relaxed text-muted-foreground">
-              A atribuição não inicia checkout. Bloqueio administrativo exige desbloqueio separado.
-            </p>
           </div>
         )}
         {!isSelf && !isAdmin && (

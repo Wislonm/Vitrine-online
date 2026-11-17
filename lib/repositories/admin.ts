@@ -43,6 +43,7 @@ export async function listAccounts(search?: string) {
       subscriptionStatus: subscriptions.status,
       subscriptionExpiresAt: subscriptions.expiresAt,
       mercadoPagoStatus: subscriptions.mercadoPagoStatus,
+      billingPeriod: subscriptions.mercadoPagoBillingPeriod,
       createdAt: user.createdAt,
       storeId: stores.id,
       storeName: stores.name,

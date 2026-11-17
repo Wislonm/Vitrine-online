@@ -3,7 +3,7 @@ import { Search } from 'lucide-react'
 import { AccountStatusTabs } from '@/components/admin/account-status-tabs'
 import { Input } from '@/components/ui/input'
 import { listAccounts } from '@/lib/repositories/admin'
-import { listPlans } from '@/lib/repositories/plans'
+import { getPlanPeriodPrices, listPlans } from '@/lib/repositories/plans'
 import { requireAdmin } from '@/lib/session'
 
 export const metadata: Metadata = { title: 'Usuários e lojas' }
