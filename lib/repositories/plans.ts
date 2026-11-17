@@ -1,6 +1,6 @@
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { db } from '@/lib/db'
-import { plans, subscriptions } from '@/lib/db/schema'
+import { plans, stores, subscriptions } from '@/lib/db/schema'
 
 export type Plan = typeof plans.$inferSelect
 export type CheckoutBillingPeriod = 'monthly' | 'semiannual' | 'yearly'
@@ -47,8 +47,18 @@ export async function updatePlan(
 }
 
 export async function setStorePlan(storeId: string, planId: string) {
-  await db
-    .update(subscriptions)
-    .set({ planId, status: 'active', startedAt: new Date(), expiresAt: null, updatedAt: new Date() })
-    .where(eq(subscriptions.storeId, storeId))
+  const now = new Date()
+  await db.transaction(async (tx) => {
+    await tx
+      .insert(subscriptions)
+      .values({ storeId, planId, status: 'active', startedAt: now, expiresAt: null, updatedAt: now })
+      .onConflictDoUpdate({
+        target: subscriptions.storeId,
+        set: { planId, status: 'active', startedAt: now, expiresAt: null, updatedAt: now },
+      })
+    await tx
+      .update(stores)
+      .set({ status: 'active', updatedAt: now })
+      .where(and(eq(stores.id, storeId), eq(stores.status, 'suspended')))
+  })
 }

@@ -16,7 +16,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
   return (
     <>
       <h1 className="mb-2 text-3xl font-semibold sm:text-4xl">Usuários e lojas</h1>
-      <p className="mb-8 max-w-2xl text-sm text-muted-foreground">Suspensas: plano expirado ou pendência financeira. Bloqueadas: contas impedidas de acessar por descumprimento das regras.</p>
+      <p className="mb-8 max-w-2xl text-sm text-muted-foreground">Suspensas: plano expirado ou pendência financeira. Bloqueadas: contas impedidas de acessar por descumprimento das regras. A exclusão fica disponível somente para lojas bloqueadas; planos podem ser atribuídos manualmente na linha do usuário.</p>
 
       <form role="search" className="relative mb-6">
         <Search className="pointer-events-none absolute top-1/2 left-5 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
@@ -36,6 +36,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
           lifecycleReason: account.lifecycleReason,
           createdAt: account.createdAt.toISOString(),
           storeId: account.storeId,
+          storeStatus: account.storeStatus,
           storeName: account.storeName,
           storeSlug: account.storeSlug,
           planId: account.planId,

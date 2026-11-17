@@ -29,7 +29,9 @@ export async function changeStorePlanAction(storeId: string, planId: string): Pr
       details: { plan: plan.slug },
     })
     revalidatePath('/admin', 'layout')
-    return { ok: true, message: `Plano alterado para ${plan.name}` }
+    revalidatePath('/admin/usuarios')
+    revalidatePath('/painel/plano')
+    return { ok: true, message: `Plano ${plan.name} aplicado manualmente` }
   } catch (error) {
     if (error instanceof UnauthorizedError) return { ok: false, error: FORBIDDEN }
     console.error('[admin] changePlan', error)
@@ -79,6 +81,7 @@ export async function deleteAccountAction(raw: unknown): Promise<ActionResult> {
     if (!snapshot) return { ok: false, error: 'Conta não encontrada.' }
     if (snapshot.userId === admin.id) return { ok: false, error: 'Você não pode excluir a própria conta.' }
     if (snapshot.role === 'admin') return { ok: false, error: 'Contas de administrador não podem ser excluídas por este fluxo.' }
+    if (!snapshot.storeId || snapshot.storeStatus !== 'blocked') return { ok: false, error: 'Só é possível excluir contas quando a loja está bloqueada.' }
     if (snapshot.email.trim().toLowerCase() !== parsed.data.confirmationEmail.trim().toLowerCase()) {
       return { ok: false, error: 'O e-mail digitado não corresponde à conta selecionada.' }
     }
@@ -137,6 +140,7 @@ export async function deleteAccountAction(raw: unknown): Promise<ActionResult> {
     if (result.status === 'not_found') return { ok: false, error: 'Conta não encontrada.' }
     if (result.status === 'self') return { ok: false, error: 'Você não pode excluir a própria conta.' }
     if (result.status === 'admin') return { ok: false, error: 'Contas de administrador não podem ser excluídas por este fluxo.' }
+    if (result.status === 'store_not_blocked') return { ok: false, error: 'Só é possível excluir contas quando a loja está bloqueada.' }
     if (result.status === 'email_mismatch') return { ok: false, error: 'O e-mail digitado não corresponde à conta selecionada.' }
     if (result.status === 'billing_cancellation_required') return { ok: false, error: 'A cobrança mudou durante a exclusão. Revise a assinatura e tente novamente.' }
     if (result.status === 'checkout_processing') return { ok: false, error: 'Há um checkout em processamento. Aguarde a confirmação antes de excluir a conta.' }

@@ -128,6 +128,7 @@ export async function getAccountDeletionSnapshot(userId: string) {
       name: user.name,
       role: user.role,
       storeId: stores.id,
+      storeStatus: stores.status,
       preapprovalId: subscriptions.mercadoPagoPreapprovalId,
       paymentId: subscriptions.mercadoPagoPaymentId,
       paymentStatus: subscriptions.mercadoPagoStatus,
@@ -162,10 +163,11 @@ export async function deleteAccountPermanently(input: {
     }
 
     const [store] = await tx
-      .select({ id: stores.id, name: stores.name })
+      .select({ id: stores.id, name: stores.name, status: stores.status })
       .from(stores)
       .where(eq(stores.ownerUserId, target.id))
       .limit(1)
+    if (!store || store.status !== 'blocked') return { status: 'store_not_blocked' as const }
 
     const [billing] = store
       ? await tx

@@ -30,6 +30,7 @@ export type AccountRowData = {
   lifecycleReason: string | null
   createdAt: string
   storeId: string | null
+  storeStatus: string | null
   storeName: string | null
   storeSlug: string | null
   planId: string | null
@@ -141,14 +142,17 @@ export function AccountRow({
 
       <div className="flex flex-wrap items-center gap-2">
         {account.storeId && (
-          <div className="w-40">
+          <div className="flex min-w-44 flex-col gap-1.5">
+            <label htmlFor={`account-plan-${account.storeId}`} className="text-xs font-medium">Aplicar plano manualmente</label>
             <NativeSelect
-              aria-label={`Plano de ${account.userName}`}
+              id={`account-plan-${account.storeId}`}
+              aria-describedby={`account-plan-help-${account.storeId}`}
               value={account.planId ?? ''}
               disabled={pending}
               onChange={(e) => changePlan(e.target.value)}
               className="h-10 bg-background"
             >
+              {!account.planId && <option value="" disabled>Selecione um plano</option>}
               {account.planId && !plans.some((plan) => plan.id === account.planId) && <option value={account.planId} disabled>{account.planName ?? 'Plano interno'}</option>}
               {plans.map((plan) => (
                 <option key={plan.id} value={plan.id}>
@@ -156,6 +160,9 @@ export function AccountRow({
                 </option>
               ))}
             </NativeSelect>
+            <p id={`account-plan-help-${account.storeId}`} className="text-xs leading-relaxed text-muted-foreground">
+              A atribuição não inicia checkout. Bloqueio administrativo exige desbloqueio separado.
+            </p>
           </div>
         )}
         {!isSelf && !isAdmin && (
@@ -164,9 +171,11 @@ export function AccountRow({
               {blocked ? <LockOpen aria-hidden="true" /> : <Lock aria-hidden="true" />}
               {blocked ? 'Desbloquear' : 'Bloquear'}
             </Button>
-            <Button type="button" variant="destructive" size="sm" disabled={pending} onClick={() => changeDeleteDialog(true)}>
-              <Trash2 aria-hidden="true" />Excluir
-            </Button>
+            {account.storeStatus === 'blocked' && (
+              <Button type="button" variant="destructive" size="sm" disabled={pending} onClick={() => changeDeleteDialog(true)}>
+                <Trash2 aria-hidden="true" />Excluir
+              </Button>
+            )}
           </>
         )}
       </div>
