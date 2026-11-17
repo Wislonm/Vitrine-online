@@ -32,7 +32,9 @@ const sections = [
     title: '4. Teste grátis, plano e cobrança',
     paragraphs: [
       'Cada nova conta recebe um período de teste grátis de 30 dias, com acesso aos recursos do painel e ao plano único atualmente oferecido. O período começa com a criação da loja vinculada à conta.',
-      'Ao fim dos 30 dias, o acesso ao painel fica bloqueado até que a contratação do plano seja disponibilizada e concluída. No momento, a integração de pagamento e a contratação online ainda não estão disponíveis; não há cobrança automática durante o teste. Preço, periodicidade, renovação, cancelamento e condições de pagamento deverão ser apresentados antes de qualquer contratação paga.',
+      'Ao fim dos 30 dias, o acesso ao painel fica bloqueado até a contratação do plano único. O checkout transparente é processado pelo Mercado Pago: antes de confirmar, o usuário vê o valor e a periodicidade e autoriza expressamente as cobranças recorrentes. Não há cobrança automática durante o teste grátis. Depois da autorização do Mercado Pago, as renovações ocorrem conforme a periodicidade exibida no checkout.',
+      'Os dados do cartão são capturados e tokenizados pelo SDK seguro do Mercado Pago. A Ui Sales não recebe nem armazena o número completo do cartão ou o código de segurança; recebe o token necessário para criar a assinatura e o estado retornado pelo provedor.',
+      'O usuário pode cancelar a renovação pelo painel. Quando o Mercado Pago informar uma data de encerramento do período já pago, o acesso permanece até essa data; caso contrário, o cancelamento pode encerrar o acesso imediatamente.',
       'Enquanto a conta estiver sem acesso ao painel, a vitrine pública pode continuar disponível se não tiver sido desativada ou suspensa por outro motivo. A plataforma poderá limitar essa disponibilidade em situações de segurança, descumprimento destes termos ou exigência legal.',
     ],
   },

@@ -1,6 +1,7 @@
 'use client'
 
 import Script from 'next/script'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import useSWR from 'swr'
@@ -78,7 +79,11 @@ export function MercadoPagoTransparentCheckout({
   const { data: checkoutStatus } = useSWR(statusKey, fetchCheckoutStatus, { refreshInterval: awaiting ? 5000 : 0, revalidateOnFocus: true })
 
   useEffect(() => {
-    if (!sdkReady || !window.MercadoPago || completed || awaiting || cardFormRef.current) return
+    if (!sdkReady || completed || awaiting || cardFormRef.current) return
+    if (!window.MercadoPago) {
+      setError('O SDK seguro do Mercado Pago não carregou. Atualize a página e tente novamente.')
+      return
+    }
 
     const mercadoPago = new window.MercadoPago(publicKey, { locale: 'pt-BR' })
     let cardForm: MercadoPagoCardForm
@@ -125,7 +130,7 @@ export function MercadoPagoTransparentCheckout({
             const response = await fetch('/api/checkout/mercado-pago', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ cardToken: cardData.token, recurringAccepted: true }),
+              body: JSON.stringify({ cardToken: cardData.token, legalTermsAccepted: true, recurringAccepted: true }),
             })
             const result = await response.json() as { state?: string; message?: string; error?: string }
             if (result.state === 'processing') {
@@ -183,7 +188,7 @@ export function MercadoPagoTransparentCheckout({
 
   return (
     <section className="flex flex-col gap-5 rounded-3xl border border-border bg-background p-5 sm:p-8" aria-labelledby="mp-checkout-title">
-      <Script src="https://sdk.mercadopago.com/js/v2" strategy="afterInteractive" onReady={() => setSdkReady(true)} />
+      <Script src="https://sdk.mercadopago.com/js/v2" strategy="afterInteractive" onReady={() => setSdkReady(true)} onError={() => setError('Não foi possível carregar o SDK seguro do Mercado Pago.')} />
       <div>
         <h2 id="mp-checkout-title" className="font-display text-xl font-semibold">Pagamento seguro</h2>
         <p className="mt-1 text-sm text-muted-foreground">{planName} · {formatBRL(amount)} / {periodLabels[billingPeriod]}</p>
@@ -239,7 +244,7 @@ export function MercadoPagoTransparentCheckout({
 
           <label className="flex cursor-pointer items-start gap-3 rounded-2xl bg-muted p-4 text-sm leading-relaxed">
             <input type="checkbox" checked={consent} onChange={(event) => onConsentChange(event.target.checked)} className="mt-1 size-4 shrink-0 accent-primary" />
-            <span>Autorizo a cobrança recorrente de {formatBRL(amount)} por {periodLabels[billingPeriod]}, conforme os <a href="/termos" target="_blank" rel="noreferrer" className="underline underline-offset-4">Termos de Uso</a>. Posso solicitar o cancelamento da renovação a qualquer momento.</span>
+            <span>Li e aceito os <Link href="/termos" target="_blank" className="underline underline-offset-4">Termos de Uso</Link> e a <Link href="/privacidade" target="_blank" className="underline underline-offset-4">Política de Privacidade</Link>, e autorizo a cobrança recorrente de {formatBRL(amount)} por {periodLabels[billingPeriod]}. Posso cancelar a renovação pelo painel.</span>
           </label>
 
           {error && <p role="alert" className="rounded-2xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</p>}

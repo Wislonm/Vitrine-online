@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Check, Clock3, Package } from 'lucide-react'
 import { PageHeader } from '@/components/panel/page-header'
 import { MercadoPagoTransparentCheckout } from '@/components/panel/mercadopago-transparent-checkout'
+import { CancelMercadoPagoSubscriptionButton } from '@/components/panel/cancel-mercadopago-subscription-button'
 import { formatBRL } from '@/lib/format'
 import { getMercadoPagoSettingsForAdmin } from '@/lib/repositories/payment-settings'
 import { requireSellerContext } from '@/lib/session'
@@ -36,17 +37,20 @@ export default async function PlanPage() {
     getMercadoPagoSettingsForAdmin(),
   ])
   const trialEnd = usage.subscription?.expiresAt ?? null
-  const pageTitle = usage.subscriptionExpired ? 'Contratar plano' : 'Meu plano'
   const planPrice = usage.plan ? Number(usage.plan.price) : 0
   const checkoutConfigured = Boolean(paymentSettings.publicKey && paymentSettings.hasAccessToken && paymentSettings.hasWebhookSecret)
-  const checkoutAvailable = usage.subscriptionExpired && planPrice > 0 && checkoutConfigured && !(process.env.NODE_ENV === 'production' && paymentSettings.environment === 'test')
+  const checkoutAvailable = usage.subscriptionExpired && planPrice > 0 && checkoutConfigured && !(process.env.VERCEL_ENV === 'production' && paymentSettings.environment === 'test')
   const paymentPending = Boolean(usage.subscription?.mercadoPagoCheckoutStartedAt || usage.subscription?.mercadoPagoStatus === 'pending' || usage.subscription?.mercadoPagoStatus === 'processing')
+  const pageTitle = usage.subscriptionExpired ? 'Contratar plano' : 'Meu plano'
+  const unavailableDescription = usage.isTrial
+    ? 'Seu período de teste terminou. Contrate o plano para reativar o painel.'
+    : 'Sua assinatura está suspensa. Regularize o plano para voltar a gerenciar a loja.'
 
   return (
     <>
       <PageHeader
         title={pageTitle}
-        description={usage.subscriptionExpired ? 'Seu período de teste terminou. Contrate o plano para reativar o painel.' : 'Seu teste grátis libera todos os recursos do painel por 30 dias.'}
+        description={usage.subscriptionExpired ? unavailableDescription : 'Seu teste grátis libera todos os recursos do painel por 30 dias.'}
       />
 
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-5">
@@ -57,7 +61,7 @@ export default async function PlanPage() {
               <h2 className="mt-1 font-display text-2xl font-semibold">{usage.plan?.name ?? 'Plano único'}</h2>
             </div>
             <span className={`rounded-full px-3 py-1.5 text-xs font-medium ${usage.subscriptionExpired ? 'bg-destructive/10 text-destructive' : 'bg-background text-foreground'}`}>
-              {usage.subscriptionExpired ? 'Teste encerrado' : usage.isTrial ? 'Teste grátis' : 'Ativo'}
+              {usage.subscriptionExpired ? usage.isTrial ? 'Teste encerrado' : 'Assinatura suspensa' : usage.isTrial ? 'Teste grátis' : usage.subscription?.mercadoPagoStatus === 'cancelled' ? 'Renovação cancelada' : 'Ativo'}
             </span>
           </div>
 
@@ -71,7 +75,11 @@ export default async function PlanPage() {
             </div>
           ) : usage.subscriptionExpired ? (
             <div className="rounded-2xl bg-background p-4 text-sm leading-relaxed text-muted-foreground">
-              O painel está bloqueado, mas seus dados e sua vitrine permanecem salvos. Conclua a contratação para voltar a gerenciar a loja.
+              O painel está bloqueado, mas seus dados e sua vitrine permanecem salvos. {usage.isTrial ? 'Conclua a contratação para voltar a gerenciar a loja.' : 'Regularize a assinatura para voltar a gerenciar a loja.'}
+            </div>
+          ) : usage.subscription?.mercadoPagoStatus === 'cancelled' && trialEnd ? (
+            <div className="rounded-2xl bg-background p-4 text-sm leading-relaxed text-muted-foreground">
+              Renovação cancelada. Seu acesso continua até {formatDate(trialEnd)}.
             </div>
           ) : (
             <div className="flex items-center gap-3 rounded-2xl bg-background p-4 text-sm">
@@ -88,6 +96,7 @@ export default async function PlanPage() {
             <span className="font-semibold">Valor do plano: </span>
             {usage.plan && Number(usage.plan.price) > 0 ? `${formatBRL(Number(usage.plan.price))} / ${billingPeriodLabels[usage.plan.billingPeriod]}` : 'A definir'}
           </div>
+          {usage.subscription?.mercadoPagoStatus === 'authorized' && <CancelMercadoPagoSubscriptionButton />}
         </section>
 
         <section className="flex flex-col gap-5 rounded-3xl border border-border bg-background p-5 sm:p-8">

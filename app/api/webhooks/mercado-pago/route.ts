@@ -64,20 +64,23 @@ export async function POST(request: NextRequest) {
       status?: string
       external_reference?: string
       preapproval_id?: string | number
+      next_payment_date?: string
     }
 
     if (eventType === 'subscription_preapproval') {
       const externalReference = resource.external_reference
       const checkout = externalReference ? await getMercadoPagoCheckoutByExternalReference(externalReference) : null
-      if (!checkout?.amount || !checkout.billingPeriod || resource.id === undefined || !resource.status) {
+      if (!externalReference || !checkout?.amount || !checkout.billingPeriod || resource.id === undefined || !resource.status) {
         return NextResponse.json({ received: true, ignored: true })
       }
+      const nextPaymentDate = resource.next_payment_date ? new Date(resource.next_payment_date) : null
       await saveMercadoPagoPreapproval({
         preapprovalId: String(resource.id),
         externalReference,
         status: resource.status,
         amount: checkout.amount,
         billingPeriod: checkout.billingPeriod,
+        currentPeriodEndsAt: nextPaymentDate && !Number.isNaN(nextPaymentDate.getTime()) ? nextPaymentDate : null,
       })
     } else if (resource.preapproval_id !== undefined && resource.status) {
       await applyMercadoPagoAuthorizedPayment({
