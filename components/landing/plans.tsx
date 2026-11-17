@@ -45,7 +45,7 @@ export function Plans({ plans }: { plans: Plan[] }) {
                   <h3 className="text-2xl font-semibold">{plan.name}</h3>
                   <p className="text-sm text-muted-foreground">{plan.description}</p>
                 </div>
-                <span className="rounded-full bg-muted px-3 py-1.5 text-xs font-semibold">30 dias grátis</span>
+                <span className="rounded-full bg-muted px-3 py-1.5 text-xs font-semibold">7 dias grátis</span>
               </header>
 
               <p className="font-display text-5xl font-semibold">
@@ -78,7 +78,7 @@ export function Plans({ plans }: { plans: Plan[] }) {
               </ul>
 
               <div className="mt-auto flex flex-col gap-3">
-                <Link href="/cadastro" className={cn(buttonVariants({ size: 'lg' }))}>Começar 30 dias grátis</Link>
+                <Link href="/cadastro" className={cn(buttonVariants({ size: 'lg' }))}>Começar 7 dias grátis</Link>
                 <p className="text-center text-xs text-muted-foreground">Acesso completo durante o teste, sem cobrança automática. Checkout Mercado Pago em preparação.</p>
               </div>
             </article>

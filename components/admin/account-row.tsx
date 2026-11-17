@@ -32,6 +32,7 @@ export type AccountRowData = {
   storeName: string | null
   storeSlug: string | null
   planId: string | null
+  planName: string | null
   productLimit: number | null
   productCount: number
 }
@@ -119,6 +120,7 @@ export function AccountRow({
               onChange={(e) => changePlan(e.target.value)}
               className="h-10 bg-background"
             >
+              {account.planId && !plans.some((plan) => plan.id === account.planId) && <option value={account.planId} disabled>{account.planName ?? 'Plano interno'}</option>}
               {plans.map((plan) => (
                 <option key={plan.id} value={plan.id}>
                   {plan.name}

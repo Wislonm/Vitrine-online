@@ -178,6 +178,7 @@ export const planUpdateSchema = z.object({
   name: z.string().trim().min(2).max(40),
   description: optionalText(200),
   productLimit: z.number().int().min(0).max(100000),
+  trialDays: z.number().int().min(0).max(365),
   price: z.number().min(0).max(9_999_999),
   billingPeriod: z.enum(['monthly', 'quarterly', 'semiannual', 'yearly']),
   isActive: z.boolean(),

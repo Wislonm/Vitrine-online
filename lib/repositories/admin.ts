@@ -23,7 +23,8 @@ export async function getAdminStats() {
     products: productsRow?.total ?? 0,
     blocked: blockedRow?.total ?? 0,
     free: count('free'),
-    business: count('business'),
+    trial: count('trial-default'),
+    pro: count('business'),
   }
 }
 

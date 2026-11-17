@@ -10,7 +10,7 @@ export function Hero() {
         <div className="flex flex-col items-start gap-7">
           <span className="rise-in inline-flex items-center gap-2 rounded-full bg-muted px-4 py-2 text-xs font-medium">
             <span className="size-2 rounded-full bg-sage" aria-hidden="true" />
-            30 dias grátis, sem cartão
+            7 dias grátis, sem cartão
           </span>
 
           <h1
@@ -39,7 +39,7 @@ export function Hero() {
           </div>
 
           <p className="rise-in text-sm text-muted-foreground" style={{ animationDelay: '300ms' }}>
-            30 dias grátis com acesso completo ao painel. Cadastro em menos de 2 minutos.
+            7 dias grátis com acesso completo ao painel. Cadastro em menos de 2 minutos.
           </p>
         </div>
 

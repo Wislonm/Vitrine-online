@@ -15,7 +15,8 @@ export default async function AdminDashboardPage() {
     { label: 'Usuários', value: stats.users },
     { label: 'Lojas', value: stats.stores },
     { label: 'Contas no plano legado', value: stats.free },
-    { label: 'Assinantes do plano único', value: stats.business },
+    { label: 'Contas em degustação', value: stats.trial },
+    { label: 'Assinantes Pro', value: stats.pro },
     { label: 'Contas bloqueadas', value: stats.blocked },
     { label: 'Produtos cadastrados', value: stats.products },
   ]

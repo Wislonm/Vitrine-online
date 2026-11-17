@@ -17,7 +17,7 @@ export default async function SignUpPage() {
   return (
     <AuthShell
       title="Crie sua vitrine"
-      description="Leva menos de dois minutos. Sua loja começa com 30 dias grátis e acesso completo, sem cartão."
+      description="Leva menos de dois minutos. Sua loja começa com 7 dias grátis e acesso completo, sem cartão."
       footer={
         <>
           Já tem conta?{' '}
