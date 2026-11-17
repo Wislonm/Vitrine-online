@@ -32,7 +32,7 @@ export function HowItWorks() {
           {steps.map((step, index) => (
             <li key={step.title} className="flex flex-col gap-3 rounded-3xl bg-tile p-6">
               <span
-                className="flex size-10 items-center justify-center rounded-full bg-primary font-display text-sm font-semibold text-primary-foreground"
+                className="flex size-10 items-center justify-center rounded-full bg-foreground font-display text-sm font-semibold text-background"
                 aria-hidden="true"
               >
                 {index + 1}

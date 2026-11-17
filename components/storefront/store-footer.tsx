@@ -126,7 +126,7 @@ export function StoreFooter({ name, description, whatsapp, phone, email, address
                 href={s.href}
                 target="_blank"
                 rel="noopener noreferrer nofollow"
-                className="inline-flex h-11 items-center gap-2 rounded-full bg-primary-foreground/10 px-5 text-sm hover:bg-primary-foreground/20"
+                className="inline-flex h-11 items-center gap-2 rounded-full bg-foreground px-5 text-sm text-background hover:bg-foreground/85"
               >
                 {s.icon}
                 {s.label}

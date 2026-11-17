@@ -38,11 +38,11 @@ export function AccountStatusTabs({
               onClick={() => setStatus(tab.value)}
               className={cn(
                 'flex min-w-0 items-center justify-center gap-1.5 rounded-full px-2 py-3 text-xs font-medium transition-colors sm:gap-2 sm:px-4 sm:text-sm',
-                selected ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-background hover:text-foreground',
+                selected ? 'bg-foreground text-background ring-2 ring-primary' : 'bg-foreground text-background hover:bg-foreground/85',
               )}
             >
               <span>{tab.label}</span>
-              <span className={cn('tabular-nums', selected ? 'text-primary-foreground/75' : 'text-muted-foreground')}>{count}</span>
+              <span className={cn('tabular-nums', 'text-background/75')}>{count}</span>
             </button>
           )
         })}

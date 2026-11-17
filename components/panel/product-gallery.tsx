@@ -72,7 +72,7 @@ export function ProductGallery({ images, onChange }: { images: string[]; onChang
                 <div key={`${url}-${index}`} className="group relative h-16 w-full shrink-0 overflow-hidden rounded-[10px] bg-tile">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={url} alt={`Imagem ${index + 1} da galeria`} className="size-full object-cover" />
-                  <button type="button" onClick={() => setDeleteIndex(index)} aria-label={`Excluir imagem ${index + 1} da galeria`} className="absolute top-1 right-1 flex size-6 items-center justify-center rounded-full bg-background text-destructive shadow-sm">
+                  <button type="button" onClick={() => setDeleteIndex(index)} aria-label={`Excluir imagem ${index + 1} da galeria`} className="absolute top-1 right-1 flex size-6 items-center justify-center rounded-full bg-foreground text-background shadow-sm hover:bg-foreground/85">
                     <Trash2 className="size-3.5" aria-hidden="true" />
                   </button>
                 </div>

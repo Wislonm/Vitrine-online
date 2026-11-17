@@ -72,7 +72,7 @@ export function PanelSidebar({ isAdmin, userName, storeSlug, subscriptionExpired
       <div className="flex flex-col gap-3">
         <p className="truncate px-4 text-sm text-muted-foreground">{userName}</p>
         {subscriptionExpired ? (
-          <button type="button" onClick={signOut} className="flex items-center gap-3 rounded-full px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+          <button type="button" onClick={signOut} className="flex items-center gap-3 rounded-full bg-foreground px-4 py-3 text-sm font-medium text-background transition-colors hover:bg-foreground/85">
             <LogOut className="size-4" aria-hidden="true" />
             Sair
           </button>
@@ -124,7 +124,7 @@ export function PanelMobileHeader({ isAdmin, storeSlug, subscriptionExpired }: {
     <header className="flex h-16 items-center justify-between border-b border-border px-5 md:hidden">
       <Logo href="/painel" />
       {subscriptionExpired ? (
-        <button type="button" onClick={signOut} aria-label="Sair" className="flex size-10 items-center justify-center rounded-full text-muted-foreground hover:bg-muted">
+        <button type="button" onClick={signOut} aria-label="Sair" className="flex size-10 items-center justify-center rounded-full bg-foreground text-background hover:bg-foreground/85">
           <LogOut className="size-4" aria-hidden="true" />
         </button>
       ) : (

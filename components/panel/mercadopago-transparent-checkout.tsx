@@ -379,8 +379,8 @@ export function MercadoPagoTransparentCheckout({
       ) : (
         <>
           <div role="group" aria-label="Forma de pagamento" className="grid grid-cols-2 gap-2 rounded-full bg-muted p-1.5">
-            <button type="button" aria-pressed={paymentMethod === 'card'} onClick={() => choosePaymentMethod('card')} className={`rounded-full px-3 py-2.5 text-sm font-medium ${paymentMethod === 'card' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}>Cartão</button>
-            <button type="button" aria-pressed={paymentMethod === 'pix'} onClick={() => choosePaymentMethod('pix')} className={`rounded-full px-3 py-2.5 text-sm font-medium ${paymentMethod === 'pix' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}>Pix</button>
+            <button type="button" aria-pressed={paymentMethod === 'card'} onClick={() => choosePaymentMethod('card')} className={`rounded-full px-3 py-2.5 text-sm font-medium bg-foreground text-background ${paymentMethod === 'card' ? 'ring-2 ring-primary' : 'hover:bg-foreground/85'}`}>Cartão</button>
+            <button type="button" aria-pressed={paymentMethod === 'pix'} onClick={() => choosePaymentMethod('pix')} className={`rounded-full px-3 py-2.5 text-sm font-medium bg-foreground text-background ${paymentMethod === 'pix' ? 'ring-2 ring-primary' : 'hover:bg-foreground/85'}`}>Pix</button>
           </div>
 
           <Field label="Período de assinatura" htmlFor="mp-billing-period">
