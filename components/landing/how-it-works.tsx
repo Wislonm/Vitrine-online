@@ -22,7 +22,7 @@ export function HowItWorks() {
     <section id="como-funciona" className="scroll-mt-20 py-20 lg:py-28">
       <div className="mx-auto max-w-6xl px-5">
         <div className="mb-12 max-w-2xl">
-          <p className="mb-3 text-sm font-medium text-sage">Como funciona</p>
+          <p className="mb-3 text-sm font-medium text-brand-text">Como funciona</p>
           <h2 className="text-4xl leading-tight font-semibold sm:text-5xl">
             Da conta criada ao primeiro pedido em quatro passos.
           </h2>

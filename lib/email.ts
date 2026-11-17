@@ -56,14 +56,14 @@ export async function sendPasswordResetEmail(input: { to: string; name: string; 
     to: input.to,
     subject: 'Redefinir sua senha da Minha Vitrine',
     html: `
-      <div style="margin:0;background:#f7f5f8;padding:32px 16px;font-family:Arial,sans-serif;color:#19171a">
+      <div style="margin:0;background:#f7f3ef;padding:32px 16px;font-family:Arial,sans-serif;color:#15110f">
         <div style="max-width:560px;margin:0 auto;border-radius:20px;background:#ffffff;padding:32px">
-          <p style="margin:0 0 24px;font-size:14px;font-weight:700;color:#466c4d">Minha Vitrine</p>
+          <p style="margin:0 0 24px;font-size:14px;font-weight:700;color:#c23c00">Minha Vitrine</p>
           <h1 style="margin:0 0 16px;font-size:24px;line-height:1.3">Redefina sua senha</h1>
           <p style="font-size:16px;line-height:1.6">Olá, ${name}.</p>
           <p style="font-size:16px;line-height:1.6">Recebemos uma solicitação para criar uma nova senha para sua conta. Use o botão abaixo para continuar.</p>
           <p style="margin:28px 0">
-            <a href="${url}" style="display:inline-block;border-radius:999px;background:#111111;padding:14px 24px;color:#ffffff;text-decoration:none;font-weight:700">Criar nova senha</a>
+            <a href="${url}" style="display:inline-block;border-radius:999px;background:#f34f00;padding:14px 24px;color:#15110f;text-decoration:none;font-weight:700">Criar nova senha</a>
           </p>
           <p style="font-size:14px;line-height:1.6;color:#66616a">O link expira em 1 hora e só pode ser usado uma vez. Se você não pediu a redefinição, ignore este e-mail.</p>
         </div>

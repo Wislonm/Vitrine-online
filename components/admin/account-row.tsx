@@ -138,7 +138,7 @@ export function AccountRow({
           <span
             className={cn(
               'rounded-full px-2.5 py-0.5 text-xs font-medium',
-              account.lifecycleStatus === 'blocked' ? 'bg-destructive/10 text-destructive' : account.lifecycleStatus === 'suspended' ? 'bg-primary/10 text-primary' : 'bg-sage/15 text-sage',
+              account.lifecycleStatus === 'blocked' ? 'bg-destructive/10 text-destructive' : account.lifecycleStatus === 'suspended' ? 'bg-brand/15 text-brand-text' : 'bg-sage/15 text-sage',
             )}
           >
             {account.lifecycleStatus === 'blocked' ? 'Bloqueada' : account.lifecycleStatus === 'suspended' ? 'Suspensa' : 'Ativa'}

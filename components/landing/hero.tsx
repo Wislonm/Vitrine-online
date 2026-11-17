@@ -9,7 +9,7 @@ export function Hero() {
       <div className="mx-auto grid max-w-6xl items-center gap-14 px-5 pt-14 pb-20 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10 lg:pt-20 lg:pb-28">
         <div className="flex flex-col items-start gap-7">
           <span className="rise-in inline-flex items-center gap-2 rounded-full bg-muted px-4 py-2 text-xs font-medium">
-            <span className="size-2 rounded-full bg-sage" aria-hidden="true" />
+            <span className="size-2 rounded-full bg-brand" aria-hidden="true" />
             7 dias grátis, sem cartão
           </span>
 
@@ -50,7 +50,7 @@ export function Hero() {
 
             <div className="absolute right-0 bottom-24 z-20 hidden w-60 rounded-3xl bg-card p-4 shadow-xl shadow-foreground/10 ring-1 ring-border sm:block lg:-right-4">
               <div className="mb-2 flex items-center gap-2">
-                <span className="flex size-7 items-center justify-center rounded-full bg-sage text-sage-foreground">
+                <span className="flex size-7 items-center justify-center rounded-full bg-brand text-brand-foreground">
                   <MessageCircle className="size-3.5" aria-hidden="true" />
                 </span>
                 <span className="text-xs font-semibold">Novo pedido no WhatsApp</span>

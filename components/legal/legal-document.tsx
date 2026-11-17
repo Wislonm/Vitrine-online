@@ -35,7 +35,7 @@ export function LegalDocument({ title, description, sections, relatedHref, relat
 
         <article className="rounded-3xl bg-background p-5 shadow-sm ring-1 ring-border sm:p-10">
           <header className="mb-8 flex flex-col gap-3">
-            <p className="text-sm font-medium text-sage">Minha Vitrine · documentos legais</p>
+            <p className="text-sm font-medium text-brand-text">Minha Vitrine · documentos legais</p>
             <h1 className="font-display text-3xl font-semibold sm:text-4xl">{title}</h1>
             <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">{description}</p>
             <p className="text-xs text-muted-foreground">Versão {LEGAL_DOCUMENT_VERSION} · {LEGAL_DOCUMENT_DATE}</p>
