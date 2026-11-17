@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
   } | null
   if (!payload) return NextResponse.json({ error: 'Payload inválido.' }, { status: 400 })
 
-  const eventType = String(request.nextUrl.searchParams.get('type') ?? payload.type ?? payload.action ?? '')
+  const eventType = String(request.nextUrl.searchParams.get('type') ?? request.nextUrl.searchParams.get('topic') ?? payload.type ?? payload.action ?? '')
   if (!['subscription_preapproval', 'subscription_authorized_payment', 'payment'].includes(eventType)) {
     return NextResponse.json({ received: true, ignored: true })
   }

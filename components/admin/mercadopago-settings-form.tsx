@@ -129,8 +129,8 @@ export function MercadoPagoSettingsForm({ settings, webhookUrl }: { settings: Me
       </div>
 
       <div className="rounded-2xl border border-border bg-background p-4 text-sm leading-relaxed text-muted-foreground">
-        <p className="font-medium text-foreground">Checkout transparente com cartão</p>
-        <p className="mt-1">Os dados do cartão serão tokenizados pelo SDK do Mercado Pago no navegador; somente o token chega ao servidor. Assinaturas só serão liberadas após confirmação do Mercado Pago.</p>
+        <p className="font-medium text-foreground">Checkout transparente</p>
+        <p className="mt-1">Cartão é tokenizado pelo SDK do Mercado Pago. Pix é pagamento único para o período escolhido; recorrência automática fica restrita ao cartão e vem desativada por padrão. A assinatura só é liberada após confirmação do pagamento.</p>
         <p className="mt-4 font-medium text-foreground">URL do webhook</p>
         <code className="mt-2 block break-all rounded-xl bg-muted p-3 text-xs">{webhookUrl}</code>
         <p className="mt-2">No Mercado Pago, habilite os eventos <code>subscription_preapproval</code>, <code>subscription_authorized_payment</code> e <code>payment</code>, e informe o segredo de assinatura no campo acima.</p>

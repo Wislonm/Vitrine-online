@@ -73,6 +73,9 @@ export async function POST(request: NextRequest) {
     if (credentials.environment === 'test' && process.env.VERCEL_ENV === 'production') {
       return NextResponse.json({ error: 'O ambiente de teste não pode receber pagamentos em produção.' }, { status: 503 })
     }
+    if (credentials.environment === 'production' && process.env.VERCEL_ENV !== 'production') {
+      return NextResponse.json({ error: 'Credenciais de produção só podem ser usadas no ambiente de produção.' }, { status: 503 })
+    }
 
     const currentState = await getMercadoPagoSubscriptionState(context.store.id)
     if (currentState?.preapprovalId && ['pending', 'authorized'].includes(currentState.providerStatus ?? '')) {

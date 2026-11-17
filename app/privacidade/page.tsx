@@ -28,7 +28,7 @@ const sections = [
       'Cadastro do lojista: nome, e-mail, nome comercial, CPF ou CNPJ e WhatsApp informado para receber pedidos.',
       'Dados da loja e da vitrine: endereço, cidade, estado, telefone, e-mail de contato, links de redes sociais, nome exibido, descrição, slug, imagens, produtos, preços, categorias, estoque e variações.',
       'Dados informados por clientes ao enviar um pedido: nome, telefone opcional, observações, itens, quantidades, variações e valores do pedido.',
-      'Dados da assinatura: plano, valor e periodicidade escolhidos, estado da autorização, identificadores do Mercado Pago e referência de conciliação.',
+      'Dados da assinatura e pagamento: plano, valor e período, opção de cobrança recorrente, método (cartão ou Pix), estado da transação, identificadores do Mercado Pago, referência de conciliação e, enquanto o Pix estiver pendente, código QR/copia e cola e validade.',
       'Dados técnicos e de segurança: endereço IP e agente do navegador associados à sessão, registros de autenticação e eventos necessários para proteger e manter o serviço.',
       'Métricas de navegação: a versão de produção usa Vercel Analytics para métricas de uso do site.',
     ],

@@ -57,6 +57,9 @@ export async function POST(request: NextRequest) {
     if (credentials.environment === 'test' && process.env.VERCEL_ENV === 'production') {
       return NextResponse.json({ error: 'O checkout está em ambiente de teste e não pode ativar assinaturas em produção.' }, { status: 503 })
     }
+    if (credentials.environment === 'production' && process.env.VERCEL_ENV !== 'production') {
+      return NextResponse.json({ error: 'Credenciais de produção só podem ser usadas no ambiente de produção.' }, { status: 503 })
+    }
 
     const currentState = await getMercadoPagoSubscriptionState(context.store.id)
     if (currentState?.preapprovalId && currentState.providerStatus === 'pending') {
@@ -78,6 +81,8 @@ export async function POST(request: NextRequest) {
       externalReference,
       amount: Number(plan.price).toFixed(2),
       billingPeriod: plan.billingPeriod,
+      checkoutMode: 'recurring',
+      paymentMethod: 'card',
       consentVersion: LEGAL_DOCUMENT_VERSION,
     })
     if (!claimed) {

@@ -39,7 +39,8 @@ export default async function PlanPage() {
   const trialEnd = usage.subscription?.expiresAt ?? null
   const planPrice = usage.plan ? Number(usage.plan.price) : 0
   const checkoutConfigured = Boolean(paymentSettings.publicKey && paymentSettings.hasAccessToken && paymentSettings.hasWebhookSecret)
-  const checkoutAvailable = usage.subscriptionExpired && planPrice > 0 && checkoutConfigured && !(process.env.VERCEL_ENV === 'production' && paymentSettings.environment === 'test')
+  const environmentSafe = paymentSettings.environment === 'production' ? process.env.VERCEL_ENV === 'production' : process.env.VERCEL_ENV !== 'production'
+  const checkoutAvailable = usage.subscriptionExpired && planPrice > 0 && checkoutConfigured && environmentSafe
   const pixPaymentExpired = Boolean(usage.subscription?.mercadoPagoPaymentMethod === 'pix' && usage.subscription.mercadoPagoPixExpiresAt && usage.subscription.mercadoPagoPixExpiresAt.getTime() <= Date.now() && ['pending', 'in_process'].includes(usage.subscription.mercadoPagoStatus ?? ''))
   const paymentPending = Boolean(usage.subscription?.mercadoPagoCheckoutStartedAt || usage.subscription?.mercadoPagoStatus === 'processing' || (['pending', 'in_process'].includes(usage.subscription?.mercadoPagoStatus ?? '') && !pixPaymentExpired))
   const checkoutInitialProps = {
@@ -148,8 +149,8 @@ export default async function PlanPage() {
               <p className="rounded-2xl bg-muted p-4 text-sm leading-relaxed text-muted-foreground">
                 {planPrice <= 0
                   ? 'O valor do plano ainda não foi configurado.'
-                  : paymentSettings.environment === 'test' && process.env.NODE_ENV === 'production'
-                    ? 'O ambiente de teste não pode aceitar assinaturas em produção.'
+                  : !environmentSafe
+                    ? paymentSettings.environment === 'test' ? 'Credenciais de teste não podem processar cobranças em produção.' : 'Credenciais de produção só podem ser usadas no ambiente de produção.'
                     : 'O checkout ainda não está configurado. A equipe da plataforma precisa concluir a configuração do Mercado Pago.'}
               </p>
             )}
