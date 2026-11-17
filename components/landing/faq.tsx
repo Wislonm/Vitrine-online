@@ -32,7 +32,7 @@ export function Faq() {
     <section id="faq" className="scroll-mt-20 py-20 lg:py-28">
       <div className="mx-auto grid max-w-6xl gap-10 px-5 lg:grid-cols-[0.8fr_1.2fr]">
         <div>
-          <p className="mb-3 text-sm font-medium text-brand-text">Dúvidas frequentes</p>
+          <p className="mb-3 text-sm font-medium text-sage">Dúvidas frequentes</p>
           <h2 className="text-4xl leading-tight font-semibold sm:text-5xl">Antes de começar, o essencial.</h2>
         </div>
 

@@ -38,7 +38,7 @@ export function Benefits() {
     <section id="beneficios" className="scroll-mt-20 bg-muted/60 py-20 lg:py-28">
       <div className="mx-auto max-w-6xl px-5">
         <div className="mb-12 max-w-2xl">
-          <p className="mb-3 text-sm font-medium text-brand-text">Benefícios</p>
+          <p className="mb-3 text-sm font-medium text-sage">Benefícios</p>
           <h2 className="text-4xl leading-tight font-semibold sm:text-5xl">
             Menos conversa solta, mais pedido fechado.
           </h2>

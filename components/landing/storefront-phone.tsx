@@ -11,12 +11,12 @@ const products = [
 export function StorefrontPhone() {
   return (
     <div
-      className="relative mx-auto w-[17.5rem] rounded-[3rem] bg-ink p-2.5 shadow-2xl shadow-foreground/15 sm:w-[19rem]"
+      className="relative mx-auto w-[17.5rem] rounded-[3rem] bg-primary p-2.5 shadow-2xl shadow-foreground/15 sm:w-[19rem]"
       role="img"
       aria-label="Exemplo de vitrine digital em um celular, com banner, categorias e produtos"
     >
       <div className="relative h-[34rem] overflow-hidden rounded-[2.4rem] bg-background sm:h-[37rem]">
-        <div className="absolute top-2 left-1/2 z-20 h-6 w-20 -translate-x-1/2 rounded-full bg-ink" />
+        <div className="absolute top-2 left-1/2 z-20 h-6 w-20 -translate-x-1/2 rounded-full bg-primary" />
 
         <div className="flex h-full flex-col gap-3 px-4 pt-11">
           <div className="flex items-center justify-between">

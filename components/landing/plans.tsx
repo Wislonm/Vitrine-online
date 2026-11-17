@@ -26,7 +26,7 @@ export function Plans({ plans }: { plans: Plan[] }) {
     <section id="planos" className="scroll-mt-20 bg-muted/60 py-20 lg:py-28">
       <div className="mx-auto max-w-6xl px-5">
         <div className="mb-12 max-w-2xl">
-          <p className="mb-3 text-sm font-medium text-brand-text">Planos</p>
+          <p className="mb-3 text-sm font-medium text-sage">Planos</p>
           <h2 className="text-4xl leading-tight font-semibold sm:text-5xl">Comece grátis, cresça quando precisar.</h2>
         </div>
 

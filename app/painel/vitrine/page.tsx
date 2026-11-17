@@ -24,7 +24,7 @@ export default async function StorefrontSettingsPage() {
           heroDescription: settings?.heroDescription ?? '',
           bannerUrl: settings?.bannerUrl ?? null,
           avatarUrl: settings?.avatarUrl ?? null,
-          colorScheme: (settings?.colorScheme ?? 'brand') as StoreThemeId,
+          colorScheme: (settings?.colorScheme ?? 'sage') as StoreThemeId,
         }}
       />
     </>

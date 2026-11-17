@@ -70,7 +70,7 @@ export async function createStoreWithDefaults(input: {
       })
       .returning()
 
-    await tx.insert(storeSettings).values({ storeId: store.id, displayName: input.name, colorScheme: 'brand' })
+    await tx.insert(storeSettings).values({ storeId: store.id, displayName: input.name })
     const trialEndsAt = new Date(Date.now() + trialPlan.trialDays * 24 * 60 * 60 * 1000)
     await tx.insert(subscriptions).values({ storeId: store.id, planId: trialPlan.id, status: 'trial', expiresAt: trialEndsAt })
     return store

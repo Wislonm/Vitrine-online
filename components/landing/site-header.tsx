@@ -25,15 +25,11 @@ export function SiteHeader() {
             </a>
           ))}
         </nav>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
           <Link href="/login" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
             Entrar
           </Link>
-          <Link
-            href="/cadastro"
-            className={buttonVariants({ size: 'sm' })}
-            style={{ color: 'var(--background)' }}
-          >
+          <Link href="/cadastro" className={buttonVariants({ size: 'sm' })}>
             Criar vitrine
           </Link>
         </div>

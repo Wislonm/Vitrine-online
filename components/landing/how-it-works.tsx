@@ -22,7 +22,7 @@ export function HowItWorks() {
     <section id="como-funciona" className="scroll-mt-20 py-20 lg:py-28">
       <div className="mx-auto max-w-6xl px-5">
         <div className="mb-12 max-w-2xl">
-          <p className="mb-3 text-sm font-medium text-brand-text">Como funciona</p>
+          <p className="mb-3 text-sm font-medium text-sage">Como funciona</p>
           <h2 className="text-4xl leading-tight font-semibold sm:text-5xl">
             Da conta criada ao primeiro pedido em quatro passos.
           </h2>
@@ -32,7 +32,7 @@ export function HowItWorks() {
           {steps.map((step, index) => (
             <li key={step.title} className="flex flex-col gap-3 rounded-3xl bg-tile p-6">
               <span
-                className="flex size-10 items-center justify-center rounded-full bg-foreground font-display text-sm font-semibold text-background"
+                className="flex size-10 items-center justify-center rounded-full bg-primary font-display text-sm font-semibold text-primary-foreground"
                 aria-hidden="true"
               >
                 {index + 1}

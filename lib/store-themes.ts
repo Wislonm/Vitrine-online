@@ -1,7 +1,6 @@
 import type { CSSProperties } from 'react'
 
 export const STORE_THEMES = [
-  { id: 'brand', name: 'Laranja', primary: '#D14400', ring: '#F07A45', accent: '#FFEEE4', muted: '#FAF6F3', tile: '#F6E8DE', surfaceText: '#4A1F0A' },
   { id: 'sage', name: 'Sálvia', primary: '#3D5B4B', ring: '#6E8B78', accent: '#EAF1EC', muted: '#F3F6F3', tile: '#E5ECE7', surfaceText: '#26372D' },
   { id: 'plum', name: 'Ameixa', primary: '#66445D', ring: '#92748A', accent: '#F1EAF0', muted: '#F7F3F6', tile: '#EAE1E9', surfaceText: '#3D2B38' },
   { id: 'terracotta', name: 'Terracota', primary: '#874B38', ring: '#B17A64', accent: '#F6ECE7', muted: '#F8F4F1', tile: '#EFE2DB', surfaceText: '#4A2E24' },
