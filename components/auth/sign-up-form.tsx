@@ -19,7 +19,7 @@ export function SignUpForm() {
   const [formError, setFormError] = useState<string | null>(null)
   const [errors, setErrors] = useState<FieldErrors>({})
   const [whatsapp, setWhatsapp] = useState('')
-  const [documentType, setDocumentType] = useState<BrazilianDocumentType>('cnpj')
+  const [documentType, setDocumentType] = useState<BrazilianDocumentType>('cpf')
   const [documentNumber, setDocumentNumber] = useState('')
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
