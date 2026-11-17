@@ -1,7 +1,13 @@
 import 'server-only'
-import { and, eq, isNull, sql } from 'drizzle-orm'
+import { and, eq, isNull, or, sql } from 'drizzle-orm'
 import { db } from '@/lib/db'
-import { plans, subscriptions } from '@/lib/db/schema'
+import { plans, stores, subscriptions } from '@/lib/db/schema'
+
+const paymentReversalStatuses = ['refunded', 'charged_back', 'chargeback']
+
+function isPaymentReversal(status: string) {
+  return paymentReversalStatuses.includes(status.toLowerCase())
+}
 
 async function getActiveProPlanId() {
   const [plan] = await db.select({ id: plans.id }).from(plans).where(and(eq(plans.slug, 'business'), eq(plans.isActive, true))).limit(1)
@@ -124,16 +130,17 @@ export async function saveMercadoPagoPreapproval(input: {
 }) {
   const providerStatus = input.status.toLowerCase()
   const retainsAccess = providerStatus === 'cancelled' && Boolean(input.currentPeriodEndsAt && input.currentPeriodEndsAt.getTime() > Date.now())
-  const terminalStatus = providerStatus === 'cancelled' ? retainsAccess ? 'active' : 'cancelled'
-    : providerStatus === 'paused' ? 'paused'
-      : providerStatus === 'rejected' ? 'past_due'
-        : providerStatus === 'authorized' ? 'active' : 'pending'
+  const terminalStatus = isPaymentReversal(providerStatus) ? 'past_due'
+    : providerStatus === 'cancelled' ? retainsAccess ? 'active' : 'cancelled'
+      : providerStatus === 'paused' ? 'paused'
+        : providerStatus === 'rejected' ? 'past_due'
+          : providerStatus === 'authorized' ? 'active' : 'pending'
   const active = terminalStatus === 'active'
   const proPlanId = active ? await getActiveProPlanId() : null
   const statusGuard = ['pending', 'in_process'].includes(providerStatus)
-    ? sql`${subscriptions.mercadoPagoStatus} IS DISTINCT FROM 'authorized' AND ${subscriptions.mercadoPagoStatus} IS DISTINCT FROM 'cancelled' AND ${subscriptions.mercadoPagoStatus} IS DISTINCT FROM 'paused'`
+    ? sql`${subscriptions.mercadoPagoStatus} NOT IN ('authorized', 'cancelled', 'paused', 'refunded', 'charged_back', 'chargeback')`
     : providerStatus === 'authorized'
-      ? sql`${subscriptions.mercadoPagoStatus} IS DISTINCT FROM 'cancelled' AND ${subscriptions.mercadoPagoStatus} IS DISTINCT FROM 'paused'`
+      ? sql`${subscriptions.mercadoPagoStatus} NOT IN ('cancelled', 'paused', 'refunded', 'charged_back', 'chargeback')`
       : sql`true`
 
   const [updated] = await db
@@ -159,6 +166,13 @@ export async function saveMercadoPagoPreapproval(input: {
     })
     .where(and(eq(subscriptions.mercadoPagoExternalReference, input.externalReference), statusGuard))
     .returning({ storeId: subscriptions.storeId })
+
+  if (updated?.storeId && isPaymentReversal(providerStatus)) {
+    await db.update(stores).set({ status: 'suspended', updatedAt: new Date() }).where(and(eq(stores.id, updated.storeId), eq(stores.status, 'active')))
+  } else if (updated?.storeId && providerStatus === 'authorized') {
+    await db.update(stores).set({ status: 'active', updatedAt: new Date() }).where(and(eq(stores.id, updated.storeId), eq(stores.status, 'suspended')))
+  }
+
   return updated ?? null
 }
 
@@ -192,7 +206,9 @@ export async function saveMercadoPagoOneTimePayment(input: {
   const startedAt = input.approvedAt && !Number.isNaN(input.approvedAt.getTime()) ? input.approvedAt : new Date()
   const expiresAt = approved ? addBillingPeriod(startedAt, input.billingPeriod) : undefined
   const proPlanId = approved ? await getActiveProPlanId() : null
-  const statusGuard = approved ? sql`true` : sql`${subscriptions.mercadoPagoStatus} IS DISTINCT FROM 'approved'`
+  const statusGuard = isPaymentReversal(providerStatus)
+    ? sql`true`
+    : sql`COALESCE(${subscriptions.mercadoPagoStatus}, '') NOT IN ('approved', 'refunded', 'charged_back', 'chargeback')`
   const [updated] = await db
     .update(subscriptions)
     .set({
@@ -216,6 +232,41 @@ export async function saveMercadoPagoOneTimePayment(input: {
     })
     .where(and(eq(subscriptions.mercadoPagoExternalReference, input.externalReference), statusGuard))
     .returning({ storeId: subscriptions.storeId })
+
+  if (updated?.storeId && isPaymentReversal(providerStatus)) {
+    await db.update(stores).set({ status: 'suspended', updatedAt: new Date() }).where(and(eq(stores.id, updated.storeId), eq(stores.status, 'active')))
+  } else if (updated?.storeId && approved) {
+    await db.update(stores).set({ status: 'active', updatedAt: new Date() }).where(and(eq(stores.id, updated.storeId), eq(stores.status, 'suspended')))
+  }
+
+  return updated ?? null
+}
+
+export async function applyMercadoPagoChargeback(input: {
+  paymentId: string
+  externalReference?: string | null
+  preapprovalId?: string | null
+}) {
+  const conditions = [eq(subscriptions.mercadoPagoPaymentId, input.paymentId)]
+  if (input.externalReference) conditions.push(eq(subscriptions.mercadoPagoExternalReference, input.externalReference))
+  if (input.preapprovalId) conditions.push(eq(subscriptions.mercadoPagoPreapprovalId, input.preapprovalId))
+
+  const [updated] = await db
+    .update(subscriptions)
+    .set({
+      status: 'past_due',
+      mercadoPagoStatus: 'charged_back',
+      mercadoPagoNextPaymentAt: null,
+      expiresAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(or(...conditions))
+    .returning({ storeId: subscriptions.storeId })
+
+  if (updated?.storeId) {
+    await db.update(stores).set({ status: 'suspended', updatedAt: new Date() }).where(and(eq(stores.id, updated.storeId), eq(stores.status, 'active')))
+  }
+
   return updated ?? null
 }
 
@@ -238,21 +289,29 @@ export async function applyMercadoPagoAuthorizedPayment(input: { preapprovalId: 
   if (providerStatus === 'pending' || providerStatus === 'in_process') return null
   const approved = providerStatus === 'approved'
   const proPlanId = approved ? await getActiveProPlanId() : null
-  const failed = ['rejected', 'cancelled', 'charged_back'].includes(providerStatus)
+  const reversed = isPaymentReversal(providerStatus)
+  const failed = ['rejected', 'cancelled', 'charged_back', 'chargeback', 'refunded'].includes(providerStatus)
   if (!approved && !failed) return null
 
   const update = await db
     .update(subscriptions)
     .set({
       status: approved ? 'active' : 'past_due',
+      ...(reversed ? { mercadoPagoStatus: providerStatus, mercadoPagoNextPaymentAt: null } : {}),
       ...(proPlanId ? { planId: proPlanId } : {}),
       ...(approved ? { startedAt: new Date(), expiresAt: null, mercadoPagoNextPaymentAt: input.nextPaymentAt ?? null } : {}),
       updatedAt: new Date(),
     })
     .where(and(
       eq(subscriptions.mercadoPagoPreapprovalId, input.preapprovalId),
-      sql`${subscriptions.mercadoPagoStatus} NOT IN ('cancelled', 'paused')`,
+      sql`${subscriptions.mercadoPagoStatus} NOT IN ('cancelled', 'paused', 'refunded', 'charged_back', 'chargeback')`,
     ))
     .returning({ storeId: subscriptions.storeId })
-  return update[0] ?? null
+  const updated = update[0]
+  if (updated?.storeId && reversed) {
+    await db.update(stores).set({ status: 'suspended', updatedAt: new Date() }).where(and(eq(stores.id, updated.storeId), eq(stores.status, 'active')))
+  } else if (updated?.storeId && approved) {
+    await db.update(stores).set({ status: 'active', updatedAt: new Date() }).where(and(eq(stores.id, updated.storeId), eq(stores.status, 'suspended')))
+  }
+  return updated ?? null
 }

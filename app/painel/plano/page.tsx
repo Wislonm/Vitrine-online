@@ -57,6 +57,7 @@ export default async function PlanPage() {
         ? 'Configure o segredo do webhook do Mercado Pago no painel administrativo para liberar o checkout com confirmação segura.'
         : 'O checkout do Mercado Pago ainda não está configurado.'
   const nextPaymentAt = usage.subscription?.mercadoPagoNextPaymentAt ?? null
+  const paymentReversed = ['refunded', 'charged_back', 'chargeback'].includes(usage.subscription?.mercadoPagoStatus ?? '')
   const pixPaymentExpired = Boolean(usage.subscription?.mercadoPagoPaymentMethod === 'pix' && usage.subscription.mercadoPagoPixExpiresAt && usage.subscription.mercadoPagoPixExpiresAt.getTime() <= Date.now() && ['pending', 'in_process'].includes(usage.subscription.mercadoPagoStatus ?? ''))
   const paymentPending = Boolean(usage.subscription?.mercadoPagoCheckoutStartedAt || usage.subscription?.mercadoPagoStatus === 'processing' || (['pending', 'in_process'].includes(usage.subscription?.mercadoPagoStatus ?? '') && !pixPaymentExpired))
   const storedPeriod = usage.subscription?.mercadoPagoBillingPeriod
@@ -77,9 +78,11 @@ export default async function PlanPage() {
     trialEndsAt: usage.isTrial && !usage.subscriptionExpired ? trialEnd?.toISOString() ?? null : null,
   } as const
   const pageTitle = usage.subscriptionExpired ? 'Contratar plano' : 'Meu plano'
-  const unavailableDescription = usage.isTrial
-    ? 'Seu período de teste terminou. Contrate o plano para reativar o painel.'
-    : 'Sua assinatura está suspensa. Regularize o plano para voltar a gerenciar a loja.'
+  const unavailableDescription = paymentReversed
+    ? 'O Mercado Pago confirmou um estorno ou contestação. Sua vitrine foi suspensa; faça um novo pagamento para reativá-la.'
+    : usage.isTrial
+      ? 'Seu período de teste terminou. Contrate o plano para reativar o painel.'
+      : 'Sua assinatura está suspensa. Regularize o plano para voltar a gerenciar a loja.'
 
   return (
     <>
@@ -97,7 +100,7 @@ export default async function PlanPage() {
             </div>
             <div className="flex flex-col items-end gap-2">
               <span className={`rounded-full px-3 py-1.5 text-xs font-medium ${usage.subscriptionExpired ? 'bg-destructive/10 text-destructive' : 'bg-background text-foreground'}`}>
-                {usage.subscriptionExpired ? usage.isTrial ? 'Teste encerrado' : 'Assinatura suspensa' : usage.isTrial ? 'Teste grátis' : usage.subscription?.mercadoPagoStatus === 'cancelled' ? 'Renovação cancelada' : 'Ativo'}
+                {usage.subscriptionExpired ? paymentReversed ? 'Pagamento estornado' : usage.isTrial ? 'Teste encerrado' : 'Assinatura suspensa' : usage.isTrial ? 'Teste grátis' : usage.subscription?.mercadoPagoStatus === 'cancelled' ? 'Renovação cancelada' : 'Ativo'}
               </span>
               {usage.isTrial && !usage.subscriptionExpired && <Link href="#contratar" className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">Seja Pro</Link>}
             </div>
@@ -113,7 +116,9 @@ export default async function PlanPage() {
             </div>
           ) : usage.subscriptionExpired ? (
             <div className="rounded-2xl bg-background p-4 text-sm leading-relaxed text-muted-foreground">
-              O painel está bloqueado, mas seus dados e sua vitrine permanecem salvos. {usage.isTrial ? 'Conclua a contratação para voltar a gerenciar a loja.' : 'Regularize a assinatura para voltar a gerenciar a loja.'}
+              {paymentReversed
+                ? 'O Mercado Pago informou um estorno ou contestação do pagamento. Sua vitrine pública foi suspensa. Faça um novo pagamento para reativar o Pro.'
+                : `O painel está bloqueado, mas seus dados e sua vitrine permanecem salvos. ${usage.isTrial ? 'Conclua a contratação para voltar a gerenciar a loja.' : 'Regularize a assinatura para voltar a gerenciar a loja.'}`}
             </div>
           ) : usage.subscription?.mercadoPagoStatus === 'cancelled' && trialEnd ? (
             <div className="rounded-2xl bg-background p-4 text-sm leading-relaxed text-muted-foreground">
