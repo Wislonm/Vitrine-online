@@ -19,7 +19,7 @@ type MercadoPagoSettings = {
   updatedAt: string | null
 }
 
-export function MercadoPagoSettingsForm({ settings }: { settings: MercadoPagoSettings }) {
+export function MercadoPagoSettingsForm({ settings, webhookUrl }: { settings: MercadoPagoSettings; webhookUrl: string }) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [testPending, startTestTransition] = useTransition()
@@ -129,8 +129,11 @@ export function MercadoPagoSettingsForm({ settings }: { settings: MercadoPagoSet
       </div>
 
       <div className="rounded-2xl border border-border bg-background p-4 text-sm leading-relaxed text-muted-foreground">
-        <p className="font-medium text-foreground">Integração de checkout ainda não ativa</p>
-        <p className="mt-1">Esta tela salva as credenciais e o ambiente. A criação de checkout, validação de pagamentos e processamento de webhooks serão conectados em uma próxima etapa.</p>
+        <p className="font-medium text-foreground">Checkout transparente com cartão</p>
+        <p className="mt-1">Os dados do cartão serão tokenizados pelo SDK do Mercado Pago no navegador; somente o token chega ao servidor. Assinaturas só serão liberadas após confirmação do Mercado Pago.</p>
+        <p className="mt-4 font-medium text-foreground">URL do webhook</p>
+        <code className="mt-2 block break-all rounded-xl bg-muted p-3 text-xs">{webhookUrl}</code>
+        <p className="mt-2">No Mercado Pago, habilite os eventos <code>subscription_preapproval</code> e <code>subscription_authorized_payment</code>, e informe o segredo de assinatura no campo acima.</p>
       </div>
 
       <p className="text-xs text-muted-foreground">O teste usa o Access Token salvo e consulta a conta autenticada no Mercado Pago. Salve as alterações antes de testar. Não cria pagamento e não valida a assinatura do webhook.</p>

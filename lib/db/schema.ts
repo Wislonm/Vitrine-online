@@ -255,9 +255,18 @@ export const subscriptions = pgTable('subscriptions', {
   status: text('status').notNull().default('active'),
   startedAt: timestamp('started_at', tz).notNull().defaultNow(),
   expiresAt: timestamp('expires_at', tz),
+  mercadoPagoPreapprovalId: text('mercadopago_preapproval_id'),
+  mercadoPagoExternalReference: text('mercadopago_external_reference'),
+  mercadoPagoStatus: text('mercadopago_status'),
+  mercadoPagoCheckoutStartedAt: timestamp('mercadopago_checkout_started_at', tz),
+  mercadoPagoAmount: numeric('mercadopago_amount', { precision: 12, scale: 2 }),
+  mercadoPagoBillingPeriod: text('mercadopago_billing_period', { enum: ['monthly', 'quarterly', 'semiannual', 'yearly'] }),
   createdAt: timestamp('created_at', tz).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', tz).notNull().defaultNow(),
-})
+}, (t) => [
+  uniqueIndex('subscriptions_mercadopago_preapproval_uq').on(t.mercadoPagoPreapprovalId).where(sql`${t.mercadoPagoPreapprovalId} IS NOT NULL`),
+  uniqueIndex('subscriptions_mercadopago_external_reference_uq').on(t.mercadoPagoExternalReference).where(sql`${t.mercadoPagoExternalReference} IS NOT NULL`),
+])
 
 export const orders = pgTable(
   'orders',

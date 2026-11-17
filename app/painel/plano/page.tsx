@@ -1,8 +1,9 @@
 import type { Metadata } from 'next'
-import { Check, Clock3, CreditCard, Package } from 'lucide-react'
+import { Check, Clock3, Package } from 'lucide-react'
 import { PageHeader } from '@/components/panel/page-header'
-import { Button } from '@/components/ui/button'
+import { MercadoPagoTransparentCheckout } from '@/components/panel/mercadopago-transparent-checkout'
 import { formatBRL } from '@/lib/format'
+import { getMercadoPagoSettingsForAdmin } from '@/lib/repositories/payment-settings'
 import { requireSellerContext } from '@/lib/session'
 import { getPlanUsage } from '@/lib/services/plan-usage'
 
@@ -29,10 +30,17 @@ function formatDate(date: Date) {
 }
 
 export default async function PlanPage() {
-  const { store } = await requireSellerContext({ allowExpiredPlan: true })
-  const usage = await getPlanUsage(store.id)
+  const { user, store } = await requireSellerContext({ allowExpiredPlan: true })
+  const [usage, paymentSettings] = await Promise.all([
+    getPlanUsage(store.id),
+    getMercadoPagoSettingsForAdmin(),
+  ])
   const trialEnd = usage.subscription?.expiresAt ?? null
   const pageTitle = usage.subscriptionExpired ? 'Contratar plano' : 'Meu plano'
+  const planPrice = usage.plan ? Number(usage.plan.price) : 0
+  const checkoutConfigured = Boolean(paymentSettings.publicKey && paymentSettings.hasAccessToken && paymentSettings.hasWebhookSecret)
+  const checkoutAvailable = usage.subscriptionExpired && planPrice > 0 && checkoutConfigured && !(process.env.NODE_ENV === 'production' && paymentSettings.environment === 'test')
+  const paymentPending = Boolean(usage.subscription?.mercadoPagoCheckoutStartedAt || usage.subscription?.mercadoPagoStatus === 'pending' || usage.subscription?.mercadoPagoStatus === 'processing')
 
   return (
     <>
@@ -91,11 +99,40 @@ export default async function PlanPage() {
             {features.map((feature) => <li key={feature} className="flex items-start gap-2 text-sm"><Check className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" /><span>{feature}</span></li>)}
           </ul>
           <div className="border-t border-border pt-5">
-            <Button type="button" size="lg" disabled className="w-full sm:w-auto">
-              <CreditCard aria-hidden="true" />
-              Contratação online em breve
-            </Button>
-            <p className="mt-3 text-xs text-muted-foreground">A integração de pagamento está sendo preparada. Nenhuma cobrança é feita durante os 30 dias grátis.</p>
+            {!usage.subscriptionExpired ? (
+              <p className="rounded-2xl bg-muted p-4 text-sm leading-relaxed text-muted-foreground">
+                {usage.isTrial ? 'A contratação ficará disponível ao fim dos 30 dias grátis. Não há cobrança durante o teste.' : 'Sua assinatura está ativa.'}
+              </p>
+            ) : paymentPending ? (
+              <MercadoPagoTransparentCheckout
+                initiallyAwaiting
+                publicKey={paymentSettings.publicKey}
+                amount={planPrice}
+                billingPeriod={usage.plan?.billingPeriod ?? 'monthly'}
+                planName={usage.plan?.name ?? 'Plano Ui Sales'}
+                payerEmail={user.email}
+                identificationType={user.documentType}
+                identificationNumber={user.documentNumber}
+              />
+            ) : checkoutAvailable ? (
+              <MercadoPagoTransparentCheckout
+                publicKey={paymentSettings.publicKey}
+                amount={planPrice}
+                billingPeriod={usage.plan!.billingPeriod}
+                planName={usage.plan!.name}
+                payerEmail={user.email}
+                identificationType={user.documentType}
+                identificationNumber={user.documentNumber}
+              />
+            ) : (
+              <p className="rounded-2xl bg-muted p-4 text-sm leading-relaxed text-muted-foreground">
+                {planPrice <= 0
+                  ? 'O valor do plano ainda não foi configurado.'
+                  : paymentSettings.environment === 'test' && process.env.NODE_ENV === 'production'
+                    ? 'O ambiente de teste não pode aceitar assinaturas em produção.'
+                    : 'O checkout ainda não está configurado. A equipe da plataforma precisa concluir a configuração do Mercado Pago.'}
+              </p>
+            )}
           </div>
         </section>
       </div>
