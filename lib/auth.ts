@@ -5,7 +5,7 @@ import { db, pool } from '@/lib/db'
 import { stores, user as userTable } from '@/lib/db/schema'
 import { isEmailRegistered, isWhatsappRegistered } from '@/lib/repositories/store-uniqueness'
 import { isValidBrazilianDocument, onlyDocumentDigits } from '@/lib/brazil-document'
-import { sendEmail, isEmailConfigured } from '@/lib/email'
+import { isEmailConfigured, sendPasswordResetEmail } from '@/lib/email'
 import { normalizeWhatsapp } from '@/lib/format'
 import { ensureStoreForUser } from '@/lib/services/store-service'
 import { LEGAL_DOCUMENT_VERSION } from '@/lib/legal'
@@ -25,16 +25,19 @@ export const auth = betterAuth({
     enabled: true,
     autoSignIn: true,
     minPasswordLength: 8,
+    maxPasswordLength: 128,
+    resetPasswordTokenExpiresIn: 60 * 60,
+    revokeSessionsOnPasswordReset: true,
     sendResetPassword: async ({ user, url }) => {
       if (!isEmailConfigured()) {
-        console.error('[auth] Recuperação de senha solicitada, mas nenhum provedor de e-mail está configurado.')
+        console.error('[auth] Recuperação solicitada sem remetente de e-mail configurado.')
         return
       }
-      await sendEmail({
-        to: user.email,
-        subject: 'Redefinir sua senha',
-        html: `<p>Olá, ${user.name}.</p><p>Para criar uma nova senha, acesse: <a href="${url}">${url}</a></p><p>Se você não pediu isso, ignore este e-mail.</p>`,
-      })
+      try {
+        await sendPasswordResetEmail({ to: user.email, name: user.name, url })
+      } catch (error) {
+        console.error('[auth] Falha ao enviar e-mail de redefinição:', error)
+      }
     },
   },
   user: {
