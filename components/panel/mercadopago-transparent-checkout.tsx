@@ -14,6 +14,7 @@ import { formatBRL } from '@/lib/format'
 
 type MercadoPagoCardData = {
   token?: string
+  cardholderName?: string
   cardholderEmail?: string
   paymentMethodId?: string
   issuerId?: string | number
@@ -215,8 +216,13 @@ export function MercadoPagoTransparentCheckout({
 
           const cardData = cardForm.getCardFormData()
           const recurringMode = recurring
+          const cardholderName = cardData.cardholderName?.trim() || (document.getElementById('mp-cardholder-name') as HTMLInputElement | null)?.value.trim() || ''
           if (!cardData.token || (!recurringMode && !cardData.paymentMethodId)) {
             setError('Não foi possível tokenizar o cartão. Confira os dados e tente novamente.')
+            return
+          }
+          if (!recurringMode && !cardholderName) {
+            setError('Informe o nome do titular do cartão para concluir o pagamento.')
             return
           }
 
@@ -232,6 +238,7 @@ export function MercadoPagoTransparentCheckout({
                   legalTermsAccepted: true,
                   cardToken: cardData.token,
                   paymentMethodId: cardData.paymentMethodId,
+                  payerName: cardholderName,
                   payerEmail: cardData.cardholderEmail ?? payerEmail,
                   issuerId: cardData.issuerId ? String(cardData.issuerId) : undefined,
                   installments: Number(cardData.installments) || 1,
@@ -367,14 +374,14 @@ export function MercadoPagoTransparentCheckout({
                 <Input id="mp-cardholder-name" autoComplete="cc-name" className="bg-muted" />
               </Field>
               <Field label="Número do cartão" htmlFor="mp-card-number" required>
-                <div id="mp-card-number" className="min-h-12 rounded-full bg-muted px-5 py-3" />
+                <div id="mp-card-number" className="mp-secure-field h-12 w-full rounded-xl bg-muted px-4 py-0" />
               </Field>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Validade" htmlFor="mp-card-expiration" required>
-                  <div id="mp-card-expiration" className="min-h-12 rounded-full bg-muted px-5 py-3" />
+                  <div id="mp-card-expiration" className="mp-secure-field h-12 w-full rounded-xl bg-muted px-4 py-0" />
                 </Field>
                 <Field label="Código de segurança" htmlFor="mp-card-security-code" required>
-                  <div id="mp-card-security-code" className="min-h-12 rounded-full bg-muted px-5 py-3" />
+                  <div id="mp-card-security-code" className="mp-secure-field h-12 w-full rounded-xl bg-muted px-4 py-0" />
                 </Field>
               </div>
               <Field label="E-mail do titular" htmlFor="mp-cardholder-email" required>

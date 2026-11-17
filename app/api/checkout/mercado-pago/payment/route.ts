@@ -23,6 +23,7 @@ const cardPaymentSchema = z.object({
   legalTermsAccepted: z.literal(true),
   cardToken: z.string().trim().min(1).max(2048),
   paymentMethodId: z.string().trim().min(1).max(80),
+  payerName: z.string().trim().min(2).max(120),
   payerEmail: z.email().max(120),
   issuerId: z.string().trim().max(80).optional(),
   installments: z.coerce.number().int().min(1).max(36),
@@ -144,6 +145,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Complete o CPF/CNPJ do titular no perfil antes de pagar por Pix.' }, { status: 400 })
     }
 
+    const payerFullName = (parsed.data.paymentMethod === 'card' ? parsed.data.payerName : context.user.name).trim().replace(/\s+/g, ' ')
+    const [payerFirstName, ...payerLastNameParts] = payerFullName.split(' ')
+    if (!payerFirstName) {
+      await releaseMercadoPagoCheckout(context.store.id, externalReference)
+      return NextResponse.json({ error: 'Informe o nome completo do titular do pagamento.' }, { status: 400 })
+    }
+    const payerLastName = payerLastNameParts.join(' ') || payerFirstName
+
     const paymentPayload: Record<string, unknown> = {
       transaction_amount: Number(plan.price),
       description: `${plan.name} - ${plan.billingPeriod}`,
@@ -152,6 +161,8 @@ export async function POST(request: NextRequest) {
       notification_url: `${baseUrl}/api/webhooks/mercado-pago?type=payment`,
       payer: {
         email: parsed.data.paymentMethod === 'card' ? parsed.data.payerEmail : context.user.email,
+        first_name: payerFirstName,
+        last_name: payerLastName,
         identification: payerIdentification,
       },
     }
@@ -180,13 +191,29 @@ export async function POST(request: NextRequest) {
     }
 
     if (!response.ok) {
+      const providerError = await response.json().catch(() => null) as {
+        error?: string
+        status_detail?: string
+        cause?: Array<{ code?: string | number }>
+      } | null
+      console.error('[checkout] Mercado Pago recusou pagamento avulso', {
+        status: response.status,
+        providerError: providerError?.error,
+        statusDetail: providerError?.status_detail,
+        causeCodes: providerError?.cause?.map((cause) => cause.code).filter(Boolean),
+      })
       await releaseMercadoPagoCheckout(context.store.id, externalReference)
-      const error = response.status === 401 || response.status === 403
+      const credentialError = response.status === 401 || response.status === 403
+      const rateLimitError = response.status === 429
+      const error = credentialError
         ? 'As credenciais do Mercado Pago foram recusadas. Fale com o suporte.'
-        : response.status === 429
+        : rateLimitError
           ? 'Muitas tentativas. Aguarde e tente novamente.'
-          : 'O Mercado Pago não aprovou os dados do pagamento. Confira e tente novamente.'
-      return NextResponse.json({ error }, { status: response.status === 429 ? 429 : 422 })
+          : parsed.data.paymentMethod === 'pix'
+            ? 'O Mercado Pago recusou os dados do Pix. Confira nome, e-mail, CPF/CNPJ e se o Pix está habilitado na conta recebedora.'
+            : 'O Mercado Pago não aprovou os dados do cartão. Confira e tente novamente.'
+      const statusCode = credentialError ? 503 : rateLimitError ? 429 : [400, 422].includes(response.status) ? 422 : 502
+      return NextResponse.json({ error }, { status: statusCode })
     }
 
     const result = await response.json() as {
