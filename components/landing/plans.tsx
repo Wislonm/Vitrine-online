@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { Check, Minus } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
-import { getPlanPrice, type Plan } from '@/lib/repositories/plans'
+import { getPlanPeriodPrices, type Plan } from '@/lib/repositories/plans'
 import { formatBRL } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
@@ -20,6 +20,12 @@ const includedFeatures = [
   'Controle de estoque e disponibilidade',
   'Busca, paginação e organização do catálogo',
 ]
+
+const billingPeriodLabels = {
+  monthly: { label: 'Mensal', suffix: '/mês' },
+  semiannual: { label: 'Semestral', suffix: '/semestre' },
+  yearly: { label: 'Anual', suffix: '/ano' },
+} as const
 
 export function Plans({ plans }: { plans: Plan[] }) {
   return (
@@ -46,22 +52,20 @@ export function Plans({ plans }: { plans: Plan[] }) {
                 <span className="ml-2 font-sans text-base font-normal text-muted-foreground">produtos</span>
               </p>
 
-              <ul aria-label="Valores do Plano Pro por período" className="grid grid-cols-3 gap-2">
-                {[
-                  { period: 'monthly', label: 'Mensal', suffix: '/mês' },
-                  { period: 'semiannual', label: 'Semestral', suffix: '/semestre' },
-                  { period: 'yearly', label: 'Anual', suffix: '/ano' },
-                ].map((item) => {
-                  const price = getPlanPrice(plan, item.period as 'monthly' | 'semiannual' | 'yearly')
-                  return (
-                    <li key={item.period} className="flex min-w-0 flex-col gap-1 rounded-2xl bg-muted p-3">
-                      <span className="text-xs text-muted-foreground">{item.label}</span>
-                      <strong className="text-xs font-semibold sm:text-sm">{price && price > 0 ? formatBRL(price) : 'A definir'}</strong>
-                      <span className="text-xs text-muted-foreground">{price && price > 0 ? item.suffix : 'Indisponível'}</span>
-                    </li>
-                  )
-                })}
-              </ul>
+              {getPlanPeriodPrices(plan).length > 0 && (
+                <ul aria-label="Valores do Plano Pro por período" className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,9rem),1fr))] gap-2">
+                  {getPlanPeriodPrices(plan).map(({ period, amount }) => {
+                    const item = billingPeriodLabels[period]
+                    return (
+                      <li key={period} className="flex min-w-0 flex-col gap-1 rounded-2xl bg-muted p-4">
+                        <span className="text-xs text-muted-foreground">{item.label}</span>
+                        <strong className="text-xs font-semibold sm:text-sm">{formatBRL(amount)}</strong>
+                        <span className="text-xs text-muted-foreground">{item.suffix}</span>
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
 
               <ul className="flex flex-col gap-3 text-sm">
                 {featureRows.map((row) => {
