@@ -10,6 +10,10 @@
 
   --color-sage-foreground: var(--sage-foreground);
   --color-sage: var(--sage);
+  --color-brand: var(--brand);
+  --color-brand-window: var(--brand-window);
+  --color-brand-cream: var(--brand-cream);
+  --color-brand-mint: var(--brand-mint);
   --color-tile: var(--tile);
   --color-ring: var(--ring);
   --color-input: var(--input);
@@ -64,6 +68,12 @@
   --tile: oklch(0.935 0.012 320);
   --sage: oklch(0.5 0.075 145);
   --sage-foreground: oklch(0.99 0 0);
+
+  /* Marca: verde-floresta do ícone, vidro da vitrine, creme e menta do toldo. */
+  --brand: #1f4a38;
+  --brand-window: #2f6a52;
+  --brand-cream: #f6f1e7;
+  --brand-mint: #9cc8ab;
 }
 
 @layer base {

@@ -1,8 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" fill="none">
-  <rect width="180" height="180" rx="40" fill="#F1EFF6" />
-  <path d="M45 79 56 48h68l11 31v77H45V79Z" fill="#064E3B" />
-  <path d="M45 78h90c0 11-7 17-18 17-6 0-11-3-14-8-4 5-10 8-16 8s-12-3-16-8c-3 5-8 8-14 8-7 0-12-3-12-17Z" fill="#064E3B" />
-  <path d="M79 78h22c0 11-5 17-11 17s-11-6-11-17Z" fill="#92B89A" />
-  <path d="M57 103h23v28H57zM93 103h29v43H93z" fill="#F1EFF6" />
-  <path d="M45 156h90" stroke="#064E3B" stroke-width="8" stroke-linecap="round" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" fill="none">
+  <title>Minha Vitrine</title>
+  <rect width="64" height="64" rx="16" fill="#1F4A38"/>
+  <g transform="translate(0 -2)">
+    <path d="M17 14H47L54 30a5.5 5.5 0 0 1-11 0a5.5 5.5 0 0 1-11 0a5.5 5.5 0 0 1-11 0a5.5 5.5 0 0 1-11 0Z" fill="#F6F1E7"/>
+    <path d="M24.5 14H32V30a5.5 5.5 0 0 1-11 0Z" fill="#9CC8AB"/>
+    <path d="M39.5 14H47L54 30a5.5 5.5 0 0 1-11 0Z" fill="#9CC8AB"/>
+    <rect x="14" y="39" width="36" height="17" rx="3.5" fill="#2F6A52"/>
+    <g transform="translate(32 47.6) scale(.84) translate(-32 -47.6)">
+      <path d="M27.5 44.5H36.5L38.6 54.5H25.4Z" fill="#F6F1E7" stroke="#F6F1E7" stroke-width="1.4" stroke-linejoin="round"/>
+      <path d="M29.6 47.2C29.6 40.6 34.4 40.6 34.4 47.2" stroke="#F6F1E7" stroke-width="1.7" stroke-linecap="round"/>
+    </g>
+  </g>
 </svg>
