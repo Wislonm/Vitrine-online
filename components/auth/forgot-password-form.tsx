@@ -23,7 +23,7 @@ export function ForgotPasswordForm({ emailConfigured }: { emailConfigured: boole
 
   if (sent) {
     return (
-      <div className="flex flex-col items-start gap-3 rounded-3xl bg-tile px-5 py-5">
+      <div role="status" className="flex flex-col items-start gap-3 rounded-3xl bg-tile px-5 py-5">
         <MailCheck className="size-6" aria-hidden="true" />
         <p className="text-sm leading-relaxed">
           Se existir uma conta com esse e-mail, enviaremos as instruções para criar uma nova senha.
@@ -39,17 +39,26 @@ export function ForgotPasswordForm({ emailConfigured }: { emailConfigured: boole
       setError('Informe seu e-mail')
       return
     }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError('Informe um e-mail válido')
+      return
+    }
     setError(null)
     setPending(true)
-    await authClient.requestPasswordReset({ email, redirectTo: '/redefinir-senha' })
-    setPending(false)
-    setSent(true)
+    try {
+      await authClient.requestPasswordReset({ email, redirectTo: '/redefinir-senha' })
+    } catch {
+      // A confirmação permanece genérica para não revelar se o e-mail está cadastrado.
+    } finally {
+      setPending(false)
+      setSent(true)
+    }
   }
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
       <Field label="E-mail" htmlFor="email" error={error ?? undefined}>
-        <Input id="email" name="email" type="email" autoComplete="email" placeholder="voce@email.com" />
+        <Input id="email" name="email" type="email" autoComplete="email" placeholder="voce@email.com" maxLength={255} required />
       </Field>
       <Button type="submit" size="lg" disabled={pending}>
         {pending && <Loader2 className="animate-spin" aria-hidden="true" />}
