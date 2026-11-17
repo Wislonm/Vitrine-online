@@ -25,7 +25,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
 
       <AccountStatusTabs
         currentAdminId={admin.id}
-        plans={plans.map((plan) => ({ id: plan.id, name: plan.name }))}
+        plans={plans.map((plan) => ({ id: plan.id, name: plan.name, periods: getPlanPeriodPrices(plan) }))}
         accounts={accounts.map((account) => ({
           userId: account.userId,
           userName: account.userName,
@@ -41,6 +41,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
           storeSlug: account.storeSlug,
           planId: account.planId,
           planName: account.planName,
+          billingPeriod: account.billingPeriod,
           productLimit: account.productLimit,
           productCount: account.productCount,
         }))}

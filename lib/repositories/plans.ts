@@ -1,4 +1,5 @@
 import { and, eq } from 'drizzle-orm'
+import { addBillingPeriod } from '@/lib/billing-period'
 import { db } from '@/lib/db'
 import { plans, stores, subscriptions } from '@/lib/db/schema'
 
@@ -46,15 +47,34 @@ export async function updatePlan(
     .where(eq(plans.id, planId))
 }
 
-export async function setStorePlan(storeId: string, planId: string) {
+export async function setStorePlan(storeId: string, planId: string, period: CheckoutBillingPeriod, amount: number) {
   const now = new Date()
+  const expiresAt = addBillingPeriod(now, period)
+  const price = amount.toFixed(2)
   await db.transaction(async (tx) => {
     await tx
       .insert(subscriptions)
-      .values({ storeId, planId, status: 'active', startedAt: now, expiresAt: null, updatedAt: now })
+      .values({
+        storeId,
+        planId,
+        status: 'active',
+        startedAt: now,
+        expiresAt,
+        mercadoPagoAmount: price,
+        mercadoPagoBillingPeriod: period,
+        updatedAt: now,
+      })
       .onConflictDoUpdate({
         target: subscriptions.storeId,
-        set: { planId, status: 'active', startedAt: now, expiresAt: null, updatedAt: now },
+        set: {
+          planId,
+          status: 'active',
+          startedAt: now,
+          expiresAt,
+          mercadoPagoAmount: price,
+          mercadoPagoBillingPeriod: period,
+          updatedAt: now,
+        },
       })
     await tx
       .update(stores)

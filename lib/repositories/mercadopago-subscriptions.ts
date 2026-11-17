@@ -2,6 +2,7 @@ import 'server-only'
 import { and, eq, isNull, or, sql } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { plans, stores, subscriptions } from '@/lib/db/schema'
+import { addBillingPeriod } from '@/lib/billing-period'
 
 const paymentReversalStatuses = ['refunded', 'charged_back', 'chargeback']
 
@@ -174,18 +175,6 @@ export async function saveMercadoPagoPreapproval(input: {
   }
 
   return updated ?? null
-}
-
-const billingPeriodMonths = { monthly: 1, quarterly: 3, semiannual: 6, yearly: 12 } as const
-
-function addBillingPeriod(start: Date, period: keyof typeof billingPeriodMonths) {
-  const result = new Date(start)
-  const day = result.getUTCDate()
-  result.setUTCDate(1)
-  result.setUTCMonth(result.getUTCMonth() + billingPeriodMonths[period])
-  const lastDay = new Date(Date.UTC(result.getUTCFullYear(), result.getUTCMonth() + 1, 0)).getUTCDate()
-  result.setUTCDate(Math.min(day, lastDay))
-  return result
 }
 
 export async function saveMercadoPagoOneTimePayment(input: {

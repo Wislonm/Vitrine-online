@@ -5,33 +5,41 @@ import { z } from 'zod'
 import { getAdminOrThrow, UnauthorizedError } from '@/lib/session'
 import { deleteAccountPermanently, getAccountDeletionSnapshot, getStoreById, getUserById, recordAdminAction, setUserStatus } from '@/lib/repositories/admin'
 import { isAssetOwnedByStore, storage } from '@/lib/storage'
-import { listPlans, setStorePlan, updatePlan } from '@/lib/repositories/plans'
+import { getPlanPrice, listPlans, setStorePlan, updatePlan, type CheckoutBillingPeriod } from '@/lib/repositories/plans'
 import { getMercadoPagoCredentialsForServer, getMercadoPagoSettingsForAdmin, saveMercadoPagoSettings } from '@/lib/repositories/payment-settings'
 import { mercadoPagoSettingsSchema, planUpdateSchema, zodFieldErrors, type ActionResult } from '@/lib/validators'
 
 const FORBIDDEN = 'Você não tem permissão para esta ação.'
 
-export async function changeStorePlanAction(storeId: string, planId: string): Promise<ActionResult> {
+export async function changeStorePlanAction(
+  storeId: string,
+  planId: string,
+  period: CheckoutBillingPeriod,
+): Promise<ActionResult> {
   try {
     const admin = await getAdminOrThrow()
-    if (!z.uuid().safeParse(storeId).success || !z.uuid().safeParse(planId).success) {
+    const parsedPeriod = z.enum(['monthly', 'semiannual', 'yearly']).safeParse(period)
+    if (!z.uuid().safeParse(storeId).success || !z.uuid().safeParse(planId).success || !parsedPeriod.success) {
       return { ok: false, error: 'Dados inválidos' }
     }
     const store = await getStoreById(storeId)
     const plan = (await listPlans({ onlyActive: true })).find((p) => p.id === planId)
     if (!store || !plan) return { ok: false, error: 'Loja ou plano não encontrado' }
 
-    await setStorePlan(storeId, planId)
+    const amount = getPlanPrice(plan, parsedPeriod.data)
+    if (amount === null || amount <= 0) return { ok: false, error: 'Esse período não está configurado para o plano selecionado.' }
+
+    await setStorePlan(storeId, planId, parsedPeriod.data, amount)
     await recordAdminAction({
       adminUserId: admin.id,
       action: 'change_plan',
       targetStoreId: storeId,
-      details: { plan: plan.slug },
+      details: { plan: plan.slug, period: parsedPeriod.data, amount },
     })
     revalidatePath('/admin', 'layout')
     revalidatePath('/admin/usuarios')
     revalidatePath('/painel/plano')
-    return { ok: true, message: `Plano ${plan.name} aplicado manualmente` }
+    return { ok: true, message: `Plano ${plan.name} aplicado por ${parsedPeriod.data === 'monthly' ? '1 mês' : parsedPeriod.data === 'semiannual' ? '6 meses' : '1 ano'}` }
   } catch (error) {
     if (error instanceof UnauthorizedError) return { ok: false, error: FORBIDDEN }
     console.error('[admin] changePlan', error)

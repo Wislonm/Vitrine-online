@@ -18,7 +18,7 @@ export function AccountStatusTabs({
   currentAdminId,
 }: {
   accounts: AccountRowData[]
-  plans: { id: string; name: string }[]
+  plans: { id: string; name: string; periods: { period: 'monthly' | 'semiannual' | 'yearly'; amount: number }[] }[]
   currentAdminId: string
 }) {
   const [status, setStatus] = useState<LifecycleStatus>('active')
