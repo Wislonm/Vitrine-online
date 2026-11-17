@@ -87,11 +87,21 @@ export async function POST(request: NextRequest) {
         amount: checkout.amount,
         billingPeriod: checkout.billingPeriod,
         currentPeriodEndsAt: nextPaymentDate && !Number.isNaN(nextPaymentDate.getTime()) ? nextPaymentDate : null,
+        nextPaymentAt: nextPaymentDate && !Number.isNaN(nextPaymentDate.getTime()) ? nextPaymentDate : null,
       })
     } else if (eventType === 'subscription_authorized_payment' && resource.preapproval_id !== undefined && resource.status) {
+      const preapprovalResponse = await fetch(`https://api.mercadopago.com/preapproval/${encodeURIComponent(String(resource.preapproval_id))}`, {
+        headers: { Authorization: `Bearer ${credentials.accessToken}`, Accept: 'application/json' },
+        cache: 'no-store',
+        signal: AbortSignal.timeout(10_000),
+      })
+      if (!preapprovalResponse.ok) return NextResponse.json({ error: 'Não foi possível atualizar a próxima renovação.' }, { status: 503 })
+      const preapproval = await preapprovalResponse.json() as { next_payment_date?: string }
+      const nextPaymentDate = preapproval.next_payment_date ? new Date(preapproval.next_payment_date) : null
       await applyMercadoPagoAuthorizedPayment({
         preapprovalId: String(resource.preapproval_id),
         status: resource.status,
+        nextPaymentAt: nextPaymentDate && !Number.isNaN(nextPaymentDate.getTime()) ? nextPaymentDate : null,
       })
     } else if (eventType === 'payment' && resource.external_reference && resource.id !== undefined && resource.status) {
       const checkout = await getMercadoPagoCheckoutByExternalReference(resource.external_reference)

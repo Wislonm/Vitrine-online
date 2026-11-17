@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { Check, Clock3, Package } from 'lucide-react'
 import { PageHeader } from '@/components/panel/page-header'
 import { MercadoPagoTransparentCheckout } from '@/components/panel/mercadopago-transparent-checkout'
@@ -33,17 +34,21 @@ function formatDate(date: Date) {
 
 export default async function PlanPage() {
   const { user, store } = await requireSellerContext({ allowExpiredPlan: true })
-  const [usage, paymentSettings, activePlans] = await Promise.all([
+  const [usage, paymentSettings, plans] = await Promise.all([
     getPlanUsage(store.id),
     getMercadoPagoSettingsForAdmin(),
-    listPlans({ onlyActive: true }),
+    listPlans(),
   ])
-  const contractPlan = activePlans.find((plan) => plan.slug === 'business') ?? activePlans[0] ?? null
+  const contractPlan = plans.find((plan) => plan.slug === 'business' && plan.isActive) ?? plans.find((plan) => plan.isActive && plan.slug !== 'trial-default') ?? null
+  const trialDurationDays = plans.find((plan) => plan.slug === 'trial-default')?.trialDays ?? 7
   const trialEnd = usage.subscription?.expiresAt ?? null
   const planPrice = contractPlan ? Number(contractPlan.price) : 0
   const checkoutConfigured = Boolean(paymentSettings.publicKey && paymentSettings.hasAccessToken && paymentSettings.hasWebhookSecret)
   const environmentSafe = paymentSettings.environment === 'production' ? process.env.VERCEL_ENV === 'production' : process.env.VERCEL_ENV !== 'production'
-  const checkoutAvailable = usage.subscriptionExpired && planPrice > 0 && checkoutConfigured && environmentSafe
+  const canStartContract = usage.subscriptionExpired || usage.isTrial
+  const checkoutAvailable = canStartContract && planPrice > 0 && checkoutConfigured && environmentSafe
+  const nextPaymentAt = usage.subscription?.mercadoPagoNextPaymentAt ?? null
+  const renewalDate = nextPaymentAt ? formatDate(nextPaymentAt) : null
   const pixPaymentExpired = Boolean(usage.subscription?.mercadoPagoPaymentMethod === 'pix' && usage.subscription.mercadoPagoPixExpiresAt && usage.subscription.mercadoPagoPixExpiresAt.getTime() <= Date.now() && ['pending', 'in_process'].includes(usage.subscription.mercadoPagoStatus ?? ''))
   const paymentPending = Boolean(usage.subscription?.mercadoPagoCheckoutStartedAt || usage.subscription?.mercadoPagoStatus === 'processing' || (['pending', 'in_process'].includes(usage.subscription?.mercadoPagoStatus ?? '') && !pixPaymentExpired))
   const checkoutInitialProps = {
@@ -53,6 +58,7 @@ export default async function PlanPage() {
     initialPixQrCodeBase64: usage.subscription?.mercadoPagoPixQrCodeBase64 ?? null,
     initialPixExpiresAt: usage.subscription?.mercadoPagoPixExpiresAt?.toISOString() ?? null,
     initialPixExpired: pixPaymentExpired,
+    trialEndsAt: usage.isTrial && !usage.subscriptionExpired ? trialEnd?.toISOString() ?? null : null,
   } as const
   const pageTitle = usage.subscriptionExpired ? 'Contratar plano' : 'Meu plano'
   const unavailableDescription = usage.isTrial
@@ -63,7 +69,7 @@ export default async function PlanPage() {
     <>
       <PageHeader
         title={pageTitle}
-        description={usage.subscriptionExpired ? unavailableDescription : 'Seu plano de degustação libera todos os recursos do painel por 7 dias.'}
+        description={usage.subscriptionExpired ? unavailableDescription : usage.isTrial ? `Seu período de degustação libera todos os recursos do plano Pro por ${trialDurationDays} dias.` : 'Acompanhe sua assinatura, o limite de produtos e a próxima renovação.'}
       />
 
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-5">
@@ -73,9 +79,12 @@ export default async function PlanPage() {
               <p className="text-sm text-muted-foreground">Plano atual</p>
               <h2 className="mt-1 font-display text-2xl font-semibold">{usage.plan?.name ?? 'Degustação'}</h2>
             </div>
-            <span className={`rounded-full px-3 py-1.5 text-xs font-medium ${usage.subscriptionExpired ? 'bg-destructive/10 text-destructive' : 'bg-background text-foreground'}`}>
-              {usage.subscriptionExpired ? usage.isTrial ? 'Teste encerrado' : 'Assinatura suspensa' : usage.isTrial ? 'Teste grátis' : usage.subscription?.mercadoPagoStatus === 'cancelled' ? 'Renovação cancelada' : 'Ativo'}
-            </span>
+            <div className="flex flex-col items-end gap-2">
+              <span className={`rounded-full px-3 py-1.5 text-xs font-medium ${usage.subscriptionExpired ? 'bg-destructive/10 text-destructive' : 'bg-background text-foreground'}`}>
+                {usage.subscriptionExpired ? usage.isTrial ? 'Teste encerrado' : 'Assinatura suspensa' : usage.isTrial ? 'Teste grátis' : usage.subscription?.mercadoPagoStatus === 'cancelled' ? 'Renovação cancelada' : 'Ativo'}
+              </span>
+              {usage.isTrial && !usage.subscriptionExpired && <Link href="#contratar" className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">Seja Pro</Link>}
+            </div>
           </div>
 
           {usage.isTrial && !usage.subscriptionExpired && trialEnd ? (
@@ -93,6 +102,22 @@ export default async function PlanPage() {
           ) : usage.subscription?.mercadoPagoStatus === 'cancelled' && trialEnd ? (
             <div className="rounded-2xl bg-background p-4 text-sm leading-relaxed text-muted-foreground">
               Renovação cancelada. Seu acesso continua até {formatDate(trialEnd)}.
+            </div>
+          ) : nextPaymentAt && usage.daysUntilRenewal !== null ? (
+            <div className="flex items-center gap-3 rounded-2xl bg-background p-4">
+              <Clock3 className="size-5 shrink-0 text-primary" aria-hidden="true" />
+              <p className="text-sm">
+                <span className="font-semibold">Renovação em {usage.daysUntilRenewal} {usage.daysUntilRenewal === 1 ? 'dia' : 'dias'}</span>
+                <span className="block text-muted-foreground">Próxima cobrança prevista para {formatDate(nextPaymentAt)}.</span>
+              </p>
+            </div>
+          ) : usage.subscription?.mercadoPagoCheckoutMode === 'one_time' && trialEnd ? (
+            <div className="flex items-center gap-3 rounded-2xl bg-background p-4">
+              <Clock3 className="size-5 shrink-0 text-primary" aria-hidden="true" />
+              <p className="text-sm">
+                <span className="font-semibold">Plano válido por {usage.daysRemaining ?? 0} {usage.daysRemaining === 1 ? 'dia' : 'dias'}</span>
+                <span className="block text-muted-foreground">Acesso até {formatDate(trialEnd)}. Não há renovação automática.</span>
+              </p>
             </div>
           ) : (
             <div className="flex items-center gap-3 rounded-2xl bg-background p-4 text-sm">
@@ -112,20 +137,16 @@ export default async function PlanPage() {
           {usage.subscription?.mercadoPagoStatus === 'authorized' && <CancelMercadoPagoSubscriptionButton />}
         </section>
 
-        <section className="flex flex-col gap-5 rounded-3xl border border-border bg-background p-5 sm:p-8">
+        <section id="contratar" className="flex scroll-mt-24 flex-col gap-5 rounded-3xl border border-border bg-background p-5 sm:p-8">
           <div>
             <h2 className="font-display text-xl font-semibold">Plano Pro</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Todos os recursos para administrar e divulgar sua loja, com 7 dias grátis na criação da conta.</p>
+            <p className="mt-1 text-sm text-muted-foreground">Todos os recursos para administrar e divulgar sua loja, com {trialDurationDays} dias grátis na criação da conta. A contratação antecipada é opcional.</p>
           </div>
           <ul className="grid gap-3 sm:grid-cols-2">
             {features.map((feature) => <li key={feature} className="flex items-start gap-2 text-sm"><Check className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" /><span>{feature}</span></li>)}
           </ul>
           <div className="border-t border-border pt-5">
-            {!usage.subscriptionExpired ? (
-              <p className="rounded-2xl bg-muted p-4 text-sm leading-relaxed text-muted-foreground">
-                {usage.isTrial ? 'A contratação ficará disponível ao fim dos 7 dias grátis. Não há cobrança durante o teste.' : 'Sua assinatura está ativa.'}
-              </p>
-            ) : paymentPending ? (
+            {paymentPending ? (
               <MercadoPagoTransparentCheckout
                 {...checkoutInitialProps}
                 initiallyAwaiting
@@ -148,6 +169,16 @@ export default async function PlanPage() {
                 identificationType={user.documentType}
                 identificationNumber={user.documentNumber}
               />
+            ) : !usage.subscriptionExpired && !usage.isTrial ? (
+              <p className="rounded-2xl bg-muted p-4 text-sm leading-relaxed text-muted-foreground">Sua assinatura Pro está ativa. Veja acima a data prevista para a próxima renovação.</p>
+            ) : !usage.subscriptionExpired ? (
+              <p className="rounded-2xl bg-muted p-4 text-sm leading-relaxed text-muted-foreground">
+                {planPrice <= 0
+                  ? 'O valor do plano ainda não foi configurado.'
+                  : !environmentSafe
+                    ? paymentSettings.environment === 'test' ? 'Credenciais de teste não podem processar cobranças em produção.' : 'Credenciais de produção só podem ser usadas no ambiente de produção.'
+                    : 'A contratação está temporariamente indisponível. A equipe da plataforma precisa concluir a configuração do Mercado Pago.'}
+              </p>
             ) : (
               <p className="rounded-2xl bg-muted p-4 text-sm leading-relaxed text-muted-foreground">
                 {planPrice <= 0

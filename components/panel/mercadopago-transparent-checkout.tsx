@@ -83,6 +83,7 @@ export function MercadoPagoTransparentCheckout({
   payerEmail,
   identificationType,
   identificationNumber,
+  trialEndsAt = null,
   initiallyAwaiting = false,
   initialPaymentMethod = 'card',
   initialPixQrCode = null,
@@ -98,6 +99,7 @@ export function MercadoPagoTransparentCheckout({
   payerEmail: string
   identificationType: string | null
   identificationNumber: string | null
+  trialEndsAt?: string | null
   initiallyAwaiting?: boolean
   initialPaymentMethod?: 'card' | 'pix'
   initialPixQrCode?: string | null
@@ -123,6 +125,9 @@ export function MercadoPagoTransparentCheckout({
   const [pixExpiresAt, setPixExpiresAt] = useState<string | null>(initialPixExpiresAt)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(initialPixExpired ? 'O QR Code Pix anterior expirou. Gere um novo para continuar.' : null)
+  const firstRenewalDateLabel = trialEndsAt
+    ? new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }).format(new Date(trialEndsAt))
+    : null
   const statusKey = awaiting ? '/api/checkout/mercado-pago/status' : null
   const { data: checkoutStatus } = useSWR(statusKey, fetchCheckoutStatus, { refreshInterval: awaiting ? 5000 : 0, revalidateOnFocus: true })
 
@@ -353,7 +358,7 @@ export function MercadoPagoTransparentCheckout({
 
           <label className="flex cursor-pointer items-start gap-3 rounded-2xl bg-muted p-4 text-sm leading-relaxed">
             <input type="checkbox" checked={recurring} disabled={paymentMethod === 'pix'} onChange={(event) => chooseRecurring(event.target.checked)} className="mt-1 size-4 shrink-0 accent-primary" />
-            <span>Ativar renovação automática{paymentMethod === 'pix' ? ' (Pix é pagamento único)' : ' no cartão'}. Desativado por padrão.</span>
+            <span>{paymentMethod === 'pix' ? 'Pix é pagamento único, sem renovação automática.' : `Ativar renovação automática no cartão. ${firstRenewalDateLabel ? `A primeira cobrança será em ${firstRenewalDateLabel}.` : 'A cobrança começa na contratação.'} Desativado por padrão.`}</span>
           </label>
 
           {paymentMethod === 'card' ? (
@@ -395,8 +400,7 @@ export function MercadoPagoTransparentCheckout({
               </div>
               <label className="flex cursor-pointer items-start gap-3 rounded-2xl bg-muted p-4 text-sm leading-relaxed">
                 <input type="checkbox" checked={consent} onChange={(event) => onConsentChange(event.target.checked)} className="mt-1 size-4 shrink-0 accent-primary" />
-                <span>{recurring ? 'Li e aceito os ' : 'Li e aceito os '}
-                  <Link href="/termos" target="_blank" className="underline underline-offset-4">Termos de Uso</Link> e a <Link href="/privacidade" target="_blank" className="underline underline-offset-4">Política de Privacidade</Link>. {recurring ? `Autorizo a cobrança recorrente de ${formatBRL(amount)} por ${periodLabels[billingPeriod]}.` : `Confirmo o pagamento único de ${formatBRL(amount)} pelo período de ${periodLabels[billingPeriod]}, sem renovação automática.`} Posso cancelar a renovação automática pelo painel.
+                <span>Li e aceito os <Link href="/termos" target="_blank" className="underline underline-offset-4">Termos de Uso</Link> e a <Link href="/privacidade" target="_blank" className="underline underline-offset-4">Política de Privacidade</Link>. {recurring ? `Autorizo a cobrança recorrente de ${formatBRL(amount)} por ${periodLabels[billingPeriod]}${firstRenewalDateLabel ? `, com a primeira cobrança em ${firstRenewalDateLabel}` : ', com cobrança na contratação'}. Posso cancelar a renovação pelo painel.` : `Confirmo o pagamento único de ${formatBRL(amount)}, cobrado agora pelo período de ${periodLabels[billingPeriod]}, sem renovação automática.`}
                 </span>
               </label>
               {error && <p role="alert" className="rounded-2xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</p>}
@@ -408,7 +412,7 @@ export function MercadoPagoTransparentCheckout({
             </form>
           ) : (
             <div className="flex flex-col gap-4">
-              <p className="rounded-2xl bg-muted p-4 text-sm leading-relaxed text-muted-foreground">Pagamento Pix único de {formatBRL(amount)}. O plano ficará ativo por {periodLabels[billingPeriod]} após a confirmação, sem renovação automática.</p>
+              <p className="rounded-2xl bg-muted p-4 text-sm leading-relaxed text-muted-foreground">Pagamento Pix único de {formatBRL(amount)}. O acesso Pro começa após a confirmação e fica ativo por {periodLabels[billingPeriod]}, sem renovação automática.</p>
               <label className="flex cursor-pointer items-start gap-3 rounded-2xl bg-muted p-4 text-sm leading-relaxed">
                 <input type="checkbox" checked={consent} onChange={(event) => onConsentChange(event.target.checked)} className="mt-1 size-4 shrink-0 accent-primary" />
                 <span>Li e aceito os <Link href="/termos" target="_blank" className="underline underline-offset-4">Termos de Uso</Link> e a <Link href="/privacidade" target="_blank" className="underline underline-offset-4">Política de Privacidade</Link>. Confirmo o pagamento único de {formatBRL(amount)} pelo período de {periodLabels[billingPeriod]}, sem renovação automática.</span>
