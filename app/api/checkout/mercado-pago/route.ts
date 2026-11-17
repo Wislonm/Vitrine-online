@@ -65,6 +65,9 @@ export async function POST(request: NextRequest) {
     if (currentState?.preapprovalId && currentState.providerStatus === 'authorized') {
       return NextResponse.json({ error: 'Já existe uma autorização Mercado Pago para esta loja. Cancele a renovação atual antes de criar outra.', status: 'active' }, { status: 409 })
     }
+    if (currentState?.paymentId && currentState.providerStatus === 'pending') {
+      return NextResponse.json({ error: 'Já existe um pagamento único em processamento. Aguarde a confirmação antes de iniciar uma assinatura recorrente.', state: 'processing' }, { status: 409 })
+    }
     if (currentState?.checkoutStartedAt) {
       return NextResponse.json({ error: 'Uma solicitação de pagamento está sendo confirmada. Atualize a página em instantes.', state: 'processing' }, { status: 409 })
     }

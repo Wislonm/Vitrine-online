@@ -40,7 +40,16 @@ export default async function PlanPage() {
   const planPrice = usage.plan ? Number(usage.plan.price) : 0
   const checkoutConfigured = Boolean(paymentSettings.publicKey && paymentSettings.hasAccessToken && paymentSettings.hasWebhookSecret)
   const checkoutAvailable = usage.subscriptionExpired && planPrice > 0 && checkoutConfigured && !(process.env.VERCEL_ENV === 'production' && paymentSettings.environment === 'test')
-  const paymentPending = Boolean(usage.subscription?.mercadoPagoCheckoutStartedAt || usage.subscription?.mercadoPagoStatus === 'pending' || usage.subscription?.mercadoPagoStatus === 'processing')
+  const pixPaymentExpired = Boolean(usage.subscription?.mercadoPagoPaymentMethod === 'pix' && usage.subscription.mercadoPagoPixExpiresAt && usage.subscription.mercadoPagoPixExpiresAt.getTime() <= Date.now() && ['pending', 'in_process'].includes(usage.subscription.mercadoPagoStatus ?? ''))
+  const paymentPending = Boolean(usage.subscription?.mercadoPagoCheckoutStartedAt || usage.subscription?.mercadoPagoStatus === 'processing' || (['pending', 'in_process'].includes(usage.subscription?.mercadoPagoStatus ?? '') && !pixPaymentExpired))
+  const checkoutInitialProps = {
+    initialPaymentMethod: paymentPending || pixPaymentExpired ? usage.subscription?.mercadoPagoPaymentMethod ?? 'card' : 'card',
+    initialCheckoutMode: paymentPending && usage.subscription?.mercadoPagoCheckoutMode === 'recurring' ? 'recurring' : 'one_time',
+    initialPixQrCode: usage.subscription?.mercadoPagoPixQrCode ?? null,
+    initialPixQrCodeBase64: usage.subscription?.mercadoPagoPixQrCodeBase64 ?? null,
+    initialPixExpiresAt: usage.subscription?.mercadoPagoPixExpiresAt?.toISOString() ?? null,
+    initialPixExpired: pixPaymentExpired,
+  } as const
   const pageTitle = usage.subscriptionExpired ? 'Contratar plano' : 'Meu plano'
   const unavailableDescription = usage.isTrial
     ? 'Seu período de teste terminou. Contrate o plano para reativar o painel.'
@@ -114,6 +123,7 @@ export default async function PlanPage() {
               </p>
             ) : paymentPending ? (
               <MercadoPagoTransparentCheckout
+                {...checkoutInitialProps}
                 initiallyAwaiting
                 publicKey={paymentSettings.publicKey}
                 amount={planPrice}
@@ -125,6 +135,7 @@ export default async function PlanPage() {
               />
             ) : checkoutAvailable ? (
               <MercadoPagoTransparentCheckout
+                {...checkoutInitialProps}
                 publicKey={paymentSettings.publicKey}
                 amount={planPrice}
                 billingPeriod={usage.plan!.billingPeriod}

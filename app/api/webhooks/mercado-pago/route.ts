@@ -4,6 +4,7 @@ import { getMercadoPagoCredentialsForServer } from '@/lib/repositories/payment-s
 import {
   applyMercadoPagoAuthorizedPayment,
   getMercadoPagoCheckoutByExternalReference,
+  saveMercadoPagoOneTimePayment,
   saveMercadoPagoPreapproval,
 } from '@/lib/repositories/mercadopago-subscriptions'
 
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
   if (!payload) return NextResponse.json({ error: 'Payload inválido.' }, { status: 400 })
 
   const eventType = String(request.nextUrl.searchParams.get('type') ?? payload.type ?? payload.action ?? '')
-  if (!['subscription_preapproval', 'subscription_authorized_payment'].includes(eventType)) {
+  if (!['subscription_preapproval', 'subscription_authorized_payment', 'payment'].includes(eventType)) {
     return NextResponse.json({ received: true, ignored: true })
   }
 
@@ -49,7 +50,9 @@ export async function POST(request: NextRequest) {
 
   const resourcePath = eventType === 'subscription_preapproval'
     ? `/preapproval/${encodeURIComponent(dataId)}`
-    : `/authorized_payments/${encodeURIComponent(dataId)}`
+    : eventType === 'subscription_authorized_payment'
+      ? `/authorized_payments/${encodeURIComponent(dataId)}`
+      : `/v1/payments/${encodeURIComponent(dataId)}`
 
   try {
     const response = await fetch(`https://api.mercadopago.com${resourcePath}`, {
@@ -65,6 +68,9 @@ export async function POST(request: NextRequest) {
       external_reference?: string
       preapproval_id?: string | number
       next_payment_date?: string
+      date_approved?: string
+      payment_method_id?: string
+      point_of_interaction?: { transaction_data?: { qr_code?: string; qr_code_base64?: string; expiration_date?: string } }
     }
 
     if (eventType === 'subscription_preapproval') {
@@ -82,10 +88,30 @@ export async function POST(request: NextRequest) {
         billingPeriod: checkout.billingPeriod,
         currentPeriodEndsAt: nextPaymentDate && !Number.isNaN(nextPaymentDate.getTime()) ? nextPaymentDate : null,
       })
-    } else if (resource.preapproval_id !== undefined && resource.status) {
+    } else if (eventType === 'subscription_authorized_payment' && resource.preapproval_id !== undefined && resource.status) {
       await applyMercadoPagoAuthorizedPayment({
         preapprovalId: String(resource.preapproval_id),
         status: resource.status,
+      })
+    } else if (eventType === 'payment' && resource.external_reference && resource.id !== undefined && resource.status) {
+      const checkout = await getMercadoPagoCheckoutByExternalReference(resource.external_reference)
+      if (!checkout || checkout.checkoutMode !== 'one_time' || !checkout.amount || !checkout.billingPeriod || !checkout.paymentMethod) {
+        return NextResponse.json({ received: true, ignored: true })
+      }
+      const pixExpiresAt = resource.point_of_interaction?.transaction_data?.expiration_date
+        ? new Date(resource.point_of_interaction.transaction_data.expiration_date)
+        : null
+      await saveMercadoPagoOneTimePayment({
+        paymentId: String(resource.id),
+        externalReference: resource.external_reference,
+        status: resource.status,
+        paymentMethod: checkout.paymentMethod,
+        amount: checkout.amount,
+        billingPeriod: checkout.billingPeriod,
+        pixQrCode: resource.point_of_interaction?.transaction_data?.qr_code,
+        pixQrCodeBase64: resource.point_of_interaction?.transaction_data?.qr_code_base64,
+        pixExpiresAt: pixExpiresAt && !Number.isNaN(pixExpiresAt.getTime()) ? pixExpiresAt : null,
+        approvedAt: resource.date_approved ? new Date(resource.date_approved) : null,
       })
     }
 

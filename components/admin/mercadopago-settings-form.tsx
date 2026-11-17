@@ -133,7 +133,7 @@ export function MercadoPagoSettingsForm({ settings, webhookUrl }: { settings: Me
         <p className="mt-1">Os dados do cartão serão tokenizados pelo SDK do Mercado Pago no navegador; somente o token chega ao servidor. Assinaturas só serão liberadas após confirmação do Mercado Pago.</p>
         <p className="mt-4 font-medium text-foreground">URL do webhook</p>
         <code className="mt-2 block break-all rounded-xl bg-muted p-3 text-xs">{webhookUrl}</code>
-        <p className="mt-2">No Mercado Pago, habilite os eventos <code>subscription_preapproval</code> e <code>subscription_authorized_payment</code>, e informe o segredo de assinatura no campo acima.</p>
+        <p className="mt-2">No Mercado Pago, habilite os eventos <code>subscription_preapproval</code>, <code>subscription_authorized_payment</code> e <code>payment</code>, e informe o segredo de assinatura no campo acima.</p>
       </div>
 
       <p className="text-xs text-muted-foreground">O teste usa o Access Token salvo e consulta a conta autenticada no Mercado Pago. Salve as alterações antes de testar. Não cria pagamento e não valida a assinatura do webhook.</p>
