@@ -82,7 +82,7 @@ export const heroSchema = z.object({
   heroDescription: optionalText(300),
   bannerUrl: optionalUrl,
   avatarUrl: optionalUrl,
-  colorScheme: z.enum(['sage', 'plum', 'terracotta', 'olive', 'slate', 'berry', 'teal', 'cocoa', 'mauve', 'forest', 'copper', 'charcoal']).default('sage'),
+  colorScheme: z.enum(['sage', 'plum', 'terracotta', 'olive', 'slate', 'berry', 'teal', 'cocoa', 'mauve', 'forest', 'copper', 'charcoal', 'berry-vibrant', 'terracotta-vibrant', 'copper-vibrant', 'cocoa-vibrant', 'olive-vibrant', 'sage-vibrant', 'forest-vibrant', 'teal-vibrant', 'slate-vibrant', 'charcoal-vibrant', 'plum-vibrant', 'mauve-vibrant']).default('sage'),
 })
 
 export const variationOptionSchema = z.object({

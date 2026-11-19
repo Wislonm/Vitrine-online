@@ -7,7 +7,7 @@ import { updateHeroAction } from '@/app/actions/store'
 import { ImageUploader } from '@/components/panel/image-uploader'
 import type { HeroType } from '@/components/storefront/store-hero'
 import { Button } from '@/components/ui/button'
-import { STORE_THEMES, type StoreThemeId } from '@/lib/store-themes'
+import { STORE_THEMES, VIBRANT_STORE_THEMES, type StoreThemeId } from '@/lib/store-themes'
 import { StoreThemePreview } from '@/components/panel/store-theme-preview'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
@@ -77,26 +77,36 @@ export function HeroForm({ initial }: HeroFormProps) {
           <fieldset className="flex flex-col gap-3">
             <legend className="text-sm font-medium">Esquema de cores</legend>
             <p className="text-xs text-muted-foreground">Escolha uma paleta harmônica para o painel e a loja. O fundo permanece branco.</p>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {STORE_THEMES.map((theme) => (
-                <button
-                  key={theme.id}
-                  type="button"
-                  onClick={() => setColorScheme(theme.id)}
-                  aria-pressed={colorScheme === theme.id}
-                  className="flex min-w-0 items-center gap-2 rounded-xl border p-2 text-left text-xs transition-colors hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  style={{
-                    backgroundColor: theme.muted,
-                    borderColor: colorScheme === theme.id ? theme.primary : theme.tile,
-                    color: theme.surfaceText,
-                    boxShadow: colorScheme === theme.id ? `0 0 0 2px ${theme.ring}55` : undefined,
-                  }}
-                >
-                  <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-border/60" style={{ backgroundColor: theme.primary }}>
-                    <span className="size-2 rounded-full bg-white/90" />
-                  </span>
-                  <span className="truncate">{theme.name}</span>
-                </button>
+            <div className="flex flex-col gap-4">
+              {[
+                { title: 'Paleta original', themes: STORE_THEMES },
+                { title: 'Paleta vibrante', themes: VIBRANT_STORE_THEMES },
+              ].map((palette) => (
+                <div key={palette.title} className="flex flex-col gap-2">
+                  <h3 className="text-xs font-semibold text-muted-foreground">{palette.title}</h3>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    {palette.themes.map((theme) => (
+                      <button
+                        key={theme.id}
+                        type="button"
+                        onClick={() => setColorScheme(theme.id)}
+                        aria-pressed={colorScheme === theme.id}
+                        className="flex min-w-0 items-center gap-2 rounded-xl border p-2 text-left text-xs transition-colors hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                        style={{
+                          backgroundColor: theme.muted,
+                          borderColor: colorScheme === theme.id ? theme.primary : theme.tile,
+                          color: theme.surfaceText,
+                          boxShadow: colorScheme === theme.id ? `0 0 0 2px ${theme.ring}55` : undefined,
+                        }}
+                      >
+                        <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-border/60" style={{ backgroundColor: theme.primary }}>
+                          <span className="size-2 rounded-full bg-white/90" />
+                        </span>
+                        <span className="truncate">{theme.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
           </fieldset>

@@ -2,7 +2,7 @@
 
 import { Store } from 'lucide-react'
 import { StoreHero } from '@/components/storefront/store-hero'
-import { getStoreThemeStyle, type StoreThemeId } from '@/lib/store-themes'
+import { ALL_STORE_THEMES, getStoreThemeStyle, type StoreThemeId } from '@/lib/store-themes'
 
 type StoreThemePreviewProps = {
   displayName: string
@@ -14,6 +14,7 @@ type StoreThemePreviewProps = {
 
 export function StoreThemePreview({ displayName, description, bannerUrl, avatarUrl, themeId }: StoreThemePreviewProps) {
   const storeName = displayName.trim() || 'Sua loja'
+  const activeTheme = ALL_STORE_THEMES.find((theme) => theme.id === themeId)
 
   return (
     <aside aria-label="Prévia ao vivo da vitrine" className="flex min-w-0 flex-col gap-3 lg:sticky lg:top-6 lg:self-start">
@@ -27,7 +28,7 @@ export function StoreThemePreview({ displayName, description, bannerUrl, avatarU
             <Store className="size-4 text-primary" aria-hidden="true" />
             Vitrine pública
           </span>
-          <span className="rounded-full bg-accent px-2.5 py-1 text-accent-foreground">Prévia</span>
+          <span className="rounded-full bg-accent px-2.5 py-1 text-accent-foreground">{activeTheme?.name ?? 'Prévia'}</span>
         </div>
         <div className="p-4">
           <StoreHero
