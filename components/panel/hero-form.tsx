@@ -8,6 +8,7 @@ import { ImageUploader } from '@/components/panel/image-uploader'
 import type { HeroType } from '@/components/storefront/store-hero'
 import { Button } from '@/components/ui/button'
 import { STORE_THEMES, type StoreThemeId } from '@/lib/store-themes'
+import { StoreThemePreview } from '@/components/panel/store-theme-preview'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -83,7 +84,13 @@ export function HeroForm({ initial }: HeroFormProps) {
                   type="button"
                   onClick={() => setColorScheme(theme.id)}
                   aria-pressed={colorScheme === theme.id}
-                  className={`flex min-w-0 items-center gap-2 rounded-xl border p-2 text-left text-xs transition-colors ${colorScheme === theme.id ? 'border-foreground bg-foreground text-background ring-2 ring-ring/30' : 'border-border bg-foreground text-background hover:bg-foreground/85'}`}
+                  className="flex min-w-0 items-center gap-2 rounded-xl border p-2 text-left text-xs transition-colors hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  style={{
+                    backgroundColor: theme.muted,
+                    borderColor: colorScheme === theme.id ? theme.primary : theme.tile,
+                    color: theme.surfaceText,
+                    boxShadow: colorScheme === theme.id ? `0 0 0 2px ${theme.ring}55` : undefined,
+                  }}
                 >
                   <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-border/60" style={{ backgroundColor: theme.primary }}>
                     <span className="size-2 rounded-full bg-white/90" />
@@ -94,7 +101,19 @@ export function HeroForm({ initial }: HeroFormProps) {
             </div>
           </fieldset>
         </div>
+      </div>
 
+      <div className="min-w-0 lg:col-start-2 lg:row-start-1 lg:row-span-2">
+        <StoreThemePreview
+          displayName={displayName}
+          description={heroDescription}
+          bannerUrl={bannerUrl}
+          avatarUrl={avatarUrl}
+          themeId={colorScheme}
+        />
+      </div>
+
+      <div className="flex min-w-0 w-full flex-col gap-6 lg:col-start-1 lg:row-start-2">
         {(showBanner || showAvatar) && (
           <div className="flex flex-col gap-6">
             {showBanner && <ImageUploader kind="banner" shape="wide" label="Banner" value={bannerUrl} onChange={setBannerUrl} className="min-w-0 max-w-full" />}
@@ -109,7 +128,6 @@ export function HeroForm({ initial }: HeroFormProps) {
           </Button>
         </div>
       </div>
-
     </div>
   )
 }
