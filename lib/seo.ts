@@ -1,0 +1,5 @@
+export const SITE_URL = 'https://minhavitrine.shop'
+export const SITE_NAME = 'Minha Vitrine'
+export const SITE_TITLE = 'Minha Vitrine | Vitrine online para vender pelo WhatsApp'
+export const SITE_DESCRIPTION = 'Crie sua vitrine online, organize seus produtos e receba pedidos prontos pelo WhatsApp. Ideal para revendedores e vendedores independentes, sem taxa por venda.'
+export const SHARE_IMAGE = '/share-cover.png'
