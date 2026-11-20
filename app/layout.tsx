@@ -2,25 +2,48 @@ import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
 import { Geist, Outfit } from 'next/font/google'
 import { Toaster } from '@/components/ui/sonner'
+import { SHARE_IMAGE, SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, SITE_URL } from '@/lib/seo'
 import './globals.css'
 
 const heading = Outfit({ subsets: ['latin'], variable: '--font-heading', display: 'swap' })
 const body = Geist({ subsets: ['latin'], variable: '--font-body', display: 'swap' })
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://minhavitrine.shop'),
-  applicationName: 'Minha Vitrine',
+  metadataBase: new URL(SITE_URL),
+  applicationName: SITE_NAME,
   title: {
-    default: 'Minha Vitrine | Sua loja online pelo WhatsApp',
+    default: SITE_TITLE,
     template: '%s | Minha Vitrine',
   },
-  description:
-    'Crie sua vitrine digital, cadastre produtos e receba pedidos organizados direto no seu WhatsApp. Para revendedores, representantes e vendedores independentes.',
-  generator: 'v0.app',
+  description: SITE_DESCRIPTION,
+  keywords: [
+    'vitrine online',
+    'vitrine digital',
+    'loja online para revendedores',
+    'catálogo digital',
+    'vender pelo WhatsApp',
+    'pedidos pelo WhatsApp',
+    'loja virtual sem taxa por venda',
+  ],
+  authors: [{ name: SITE_NAME, url: SITE_URL }],
+  creator: SITE_NAME,
+  publisher: SITE_NAME,
+  alternates: { canonical: '/' },
+  robots: { index: true, follow: true },
   openGraph: {
-    siteName: 'Minha Vitrine',
+    title: 'Sua vitrine online. Pedidos no WhatsApp.',
+    description: SITE_DESCRIPTION,
+    url: SITE_URL,
+    siteName: SITE_NAME,
     locale: 'pt_BR',
     type: 'website',
+    images: [{ url: SHARE_IMAGE, width: 1200, height: 630, alt: 'Minha Vitrine: vitrine online e pedidos pelo WhatsApp' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Sua vitrine online. Pedidos no WhatsApp.',
+    description: SITE_DESCRIPTION,
+    images: [SHARE_IMAGE],
   },
   icons: {
     icon: '/favicon.png',
