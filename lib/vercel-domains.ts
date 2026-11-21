@@ -104,10 +104,12 @@ export async function ensureProjectDomain(hostname: string) {
   const existing = await requestVercel<VercelDomainInfo>(path, { allowNotFound: true })
   if (existing) return existing
 
-  return requestVercel<VercelDomainInfo>(`/v10/projects/${encodeURIComponent(VERCEL_PROJECT_ID)}/domains`, {
+  const added = await requestVercel<VercelDomainInfo>(`/v10/projects/${encodeURIComponent(VERCEL_PROJECT_ID)}/domains`, {
     method: 'POST',
     body: { name: hostname },
-  }) as Promise<VercelDomainInfo>
+  })
+  if (!added) throw new VercelDomainApiError('A Vercel não retornou o domínio criado.', 502, 'empty_response')
+  return added
 }
 
 export async function verifyProjectDomain(hostname: string) {
@@ -154,11 +156,14 @@ export async function getProjectDomainCheck(hostname: string, apexDomain: string
   }
 
   const recordName = hostname === apexDomain ? '@' : hostname.slice(0, -(apexDomain.length + 1))
-  for (const value of toRecommendations(config?.recommendedIPv4)) {
-    dnsRecords.push({ name: recordName, type: 'A', value, reason: 'Aponte este host para a Vercel.' })
-  }
-  for (const value of toRecommendations(config?.recommendedCNAME)) {
-    dnsRecords.push({ name: recordName, type: 'CNAME', value, reason: 'Aponte este host para a Vercel.' })
+  const primaryRecords = hostname === apexDomain
+    ? toRecommendations(config?.recommendedIPv4).map((value) => ({ type: 'A', value }))
+    : toRecommendations(config?.recommendedCNAME).map((value) => ({ type: 'CNAME', value }))
+  const fallbackRecords = hostname === apexDomain
+    ? toRecommendations(config?.recommendedCNAME).map((value) => ({ type: 'CNAME', value }))
+    : toRecommendations(config?.recommendedIPv4).map((value) => ({ type: 'A', value }))
+  for (const record of primaryRecords.length > 0 ? primaryRecords : fallbackRecords) {
+    dnsRecords.push({ name: recordName, type: record.type, value: record.value, reason: 'Aponte este host para a Vercel.' })
   }
   for (const value of toRecommendations(config?.recommendedTXT)) {
     dnsRecords.push({ name: hostname, type: 'TXT', value, reason: 'Registro de verificação da Vercel.' })

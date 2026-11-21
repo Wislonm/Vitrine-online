@@ -8,6 +8,7 @@ import { isAssetOwnedByStore, storage } from '@/lib/storage'
 import { getPlanPrice, listPlans, setStorePlan, updatePlan, type CheckoutBillingPeriod } from '@/lib/repositories/plans'
 import { getMercadoPagoCredentialsForServer, getMercadoPagoSettingsForAdmin, saveMercadoPagoSettings } from '@/lib/repositories/payment-settings'
 import { mercadoPagoSettingsSchema, planUpdateSchema, zodFieldErrors, type ActionResult } from '@/lib/validators'
+import { getDomainHosts, removeProjectDomain } from '@/lib/vercel-domains'
 
 const FORBIDDEN = 'Você não tem permissão para esta ação.'
 
@@ -93,6 +94,9 @@ export async function deleteAccountAction(raw: unknown): Promise<ActionResult> {
     if (snapshot.email.trim().toLowerCase() !== parsed.data.confirmationEmail.trim().toLowerCase()) {
       return { ok: false, error: 'O e-mail digitado não corresponde à conta selecionada.' }
     }
+    if (snapshot.customDomain && process.env.VERCEL_ENV !== 'production') {
+      return { ok: false, error: 'Contas com domínio personalizado só podem ser excluídas pela administração em produção.' }
+    }
     if (snapshot.checkoutStartedAt && !snapshot.preapprovalId && !snapshot.paymentId) {
       return { ok: false, error: 'Há um pagamento sendo iniciado. Aguarde a confirmação antes de excluir a conta.' }
     }
@@ -153,6 +157,24 @@ export async function deleteAccountAction(raw: unknown): Promise<ActionResult> {
     if (result.status === 'billing_cancellation_required') return { ok: false, error: 'A cobrança mudou durante a exclusão. Revise a assinatura e tente novamente.' }
     if (result.status === 'checkout_processing') return { ok: false, error: 'Há um checkout em processamento. Aguarde a confirmação antes de excluir a conta.' }
 
+    let domainCleanupFailures = 0
+    if (result.customDomain) {
+      const domainCleanup = await Promise.allSettled(getDomainHosts(result.customDomain).map(removeProjectDomain))
+      domainCleanupFailures = domainCleanup.filter((cleanup) => cleanup.status === 'rejected').length
+      if (domainCleanupFailures > 0) {
+        try {
+          await recordAdminAction({
+            adminUserId: admin.id,
+            action: 'delete_account_domain_cleanup_failed',
+            targetStoreId: result.storeId,
+            details: { deletedUserId: result.userId, domain: result.customDomain, failedHosts: domainCleanupFailures },
+          })
+        } catch (auditError) {
+          console.error('[admin] deleteAccountDomainAudit', auditError)
+        }
+      }
+    }
+
     const ownedAssets = result.storeId
       ? result.assetUrls.filter((url) => {
           try {
@@ -191,10 +213,14 @@ export async function deleteAccountAction(raw: unknown): Promise<ActionResult> {
     } catch (revalidationError) {
       console.error('[admin] deleteAccountRevalidation', revalidationError)
     }
+    const cleanupMessages = [
+      domainCleanupFailures > 0 ? 'A associação do domínio na Vercel precisa de revisão no log de auditoria.' : null,
+      cleanupFailures > 0 ? `${cleanupFailures} arquivo(s) de mídia precisam de revisão no log de auditoria.` : null,
+    ].filter((message): message is string => Boolean(message))
     return {
       ok: true,
-      message: cleanupFailures > 0
-        ? `Conta excluída. ${cleanupFailures} arquivo(s) de mídia precisam de revisão no log de auditoria.`
+      message: cleanupMessages.length > 0
+        ? `Conta excluída. ${cleanupMessages.join(' ')}`
         : 'Conta e dados relacionados excluídos permanentemente.',
     }
   } catch (error) {

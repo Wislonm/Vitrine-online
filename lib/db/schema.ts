@@ -176,6 +176,8 @@ export const storeDomains = pgTable('store_domains', {
   updatedAt: timestamp('updated_at', tz).notNull().defaultNow(),
 })
 
+export type StoreDomain = typeof storeDomains.$inferSelect
+
 export const storeSettings = pgTable('store_settings', {
   id: uuid('id').primaryKey().defaultRandom(),
   storeId: uuid('store_id')

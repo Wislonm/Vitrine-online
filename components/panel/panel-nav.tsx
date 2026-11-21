@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { ExternalLink, Gem, LayoutDashboard, LogOut, Package, Palette, ShieldCheck, Tags, UserRound } from 'lucide-react'
+import { ExternalLink, Gem, Globe, LayoutDashboard, LogOut, Package, Palette, ShieldCheck, Tags, UserRound } from 'lucide-react'
 import { authClient } from '@/lib/auth-client'
 import { Logo } from '@/components/brand/logo'
 import { cn } from '@/lib/utils'
@@ -12,6 +12,7 @@ const items = [
   { href: '/painel/produtos', label: 'Produtos', icon: Package },
   { href: '/painel/categorias', label: 'Categorias', icon: Tags },
   { href: '/painel/vitrine', label: 'Vitrine', icon: Palette },
+  { href: '/painel/dominio', label: 'Domínio', icon: Globe },
   { href: '/painel/perfil', label: 'Perfil', icon: UserRound },
   { href: '/painel/plano', label: 'Plano', icon: Gem },
 ]
@@ -30,10 +31,12 @@ function useSignOut() {
   }
 }
 
-export function PanelSidebar({ isAdmin, userName, storeSlug, subscriptionExpired }: { isAdmin: boolean; userName: string; storeSlug: string; subscriptionExpired: boolean }) {
+export function PanelSidebar({ isAdmin, userName, storeUrl, subscriptionExpired, hasCustomDomain }: { isAdmin: boolean; userName: string; storeUrl: string; subscriptionExpired: boolean; hasCustomDomain: boolean }) {
   const isActive = useActive()
   const signOut = useSignOut()
-  const visibleItems = subscriptionExpired ? items.filter((item) => item.href === '/painel/plano') : items
+  const visibleItems = subscriptionExpired
+    ? items.filter((item) => item.href === '/painel/plano')
+    : items.filter((item) => item.href !== '/painel/dominio' || hasCustomDomain)
 
   return (
     <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col justify-between border-r border-border p-5 md:flex">
@@ -77,7 +80,7 @@ export function PanelSidebar({ isAdmin, userName, storeSlug, subscriptionExpired
             Sair
           </button>
         ) : (
-          <Link href={`/${storeSlug}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 rounded-full px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+          <Link href={storeUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 rounded-full px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
             <ExternalLink className="size-4" aria-hidden="true" />
             Ver loja
           </Link>
@@ -87,9 +90,11 @@ export function PanelSidebar({ isAdmin, userName, storeSlug, subscriptionExpired
   )
 }
 
-export function PanelMobileNav({ subscriptionExpired = false }: { subscriptionExpired?: boolean }) {
+export function PanelMobileNav({ subscriptionExpired = false, hasCustomDomain = false }: { subscriptionExpired?: boolean; hasCustomDomain?: boolean }) {
   const isActive = useActive()
-  const visibleItems = subscriptionExpired ? items.filter((item) => item.href === '/painel/plano') : items
+  const visibleItems = subscriptionExpired
+    ? items.filter((item) => item.href === '/painel/plano')
+    : items.filter((item) => item.href !== '/painel/dominio' || hasCustomDomain)
 
   return (
     <nav
@@ -118,7 +123,7 @@ export function PanelMobileNav({ subscriptionExpired = false }: { subscriptionEx
   )
 }
 
-export function PanelMobileHeader({ isAdmin, storeSlug, subscriptionExpired }: { isAdmin: boolean; storeSlug: string; subscriptionExpired: boolean }) {
+export function PanelMobileHeader({ isAdmin, storeUrl, subscriptionExpired }: { isAdmin: boolean; storeUrl: string; subscriptionExpired: boolean }) {
   const signOut = useSignOut()
   return (
     <header className="flex h-16 items-center justify-between border-b border-border px-5 md:hidden">
@@ -134,7 +139,7 @@ export function PanelMobileHeader({ isAdmin, storeSlug, subscriptionExpired }: {
               <ShieldCheck className="size-4" aria-hidden="true" />
             </Link>
           )}
-          <Link href={`/${storeSlug}`} target="_blank" rel="noopener noreferrer" aria-label="Ver loja" className="flex h-10 items-center gap-2 rounded-full px-3 text-sm text-muted-foreground hover:bg-muted">
+          <Link href={storeUrl} target="_blank" rel="noopener noreferrer" aria-label="Ver loja" className="flex h-10 items-center gap-2 rounded-full px-3 text-sm text-muted-foreground hover:bg-muted">
             <ExternalLink className="size-4" aria-hidden="true" />
             Ver loja
           </Link>

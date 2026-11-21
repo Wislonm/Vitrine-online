@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import { PanelMobileHeader, PanelMobileNav, PanelSidebar } from '@/components/panel/panel-nav'
 import { requireSellerContext } from '@/lib/session'
 import { getStoreSettings } from '@/lib/repositories/stores'
+import { getStoreDomainForStore } from '@/lib/repositories/store-domains'
+import { getPlanForStore } from '@/lib/repositories/plans'
 import { getStoreThemeStyle } from '@/lib/store-themes'
 
 export const metadata: Metadata = {
@@ -11,19 +13,27 @@ export const metadata: Metadata = {
 
 export default async function PanelLayout({ children }: { children: React.ReactNode }) {
   const { user, store, subscriptionExpired } = await requireSellerContext({ allowExpiredPlan: true })
-  const settings = await getStoreSettings(store.id)
+  const [settings, planRow, domain] = await Promise.all([
+    getStoreSettings(store.id),
+    getPlanForStore(store.id),
+    getStoreDomainForStore(store.id),
+  ])
   const isAdmin = user.role === 'admin'
+  const hasCustomDomain = Boolean(planRow?.plan.isActive && planRow.plan.features?.custom_domain)
+  const storeUrl = hasCustomDomain && !subscriptionExpired && domain?.status === 'active'
+    ? `https://${domain.domain}`
+    : `/${store.slug}`
 
   return (
     <div className="seller-panel flex min-h-dvh" style={getStoreThemeStyle(settings?.colorScheme)}>
-      <PanelSidebar isAdmin={isAdmin} userName={user.name} storeSlug={store.slug} subscriptionExpired={subscriptionExpired} />
+      <PanelSidebar isAdmin={isAdmin} userName={user.name} storeUrl={storeUrl} subscriptionExpired={subscriptionExpired} hasCustomDomain={hasCustomDomain} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <PanelMobileHeader isAdmin={isAdmin} storeSlug={store.slug} subscriptionExpired={subscriptionExpired} />
+        <PanelMobileHeader isAdmin={isAdmin} storeUrl={storeUrl} subscriptionExpired={subscriptionExpired} />
         <main className="mx-auto min-w-0 w-full max-w-4xl flex-1 overflow-x-hidden px-5 pt-8 pb-28 md:px-10 md:pt-12 md:pb-16">
           {children}
         </main>
       </div>
-      <PanelMobileNav subscriptionExpired={subscriptionExpired} />
+      <PanelMobileNav subscriptionExpired={subscriptionExpired} hasCustomDomain={hasCustomDomain} />
     </div>
   )
 }
