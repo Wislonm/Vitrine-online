@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { Globe, Loader2, RefreshCw, SearchCheck, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -55,8 +55,16 @@ export function CustomDomainManager({ initialDomain, hasFeature, isProduction, h
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<Notice | null>(null)
   const [testResult, setTestResult] = useState<DnsTestResult | null>(null)
+  const isMountedRef = useRef(false)
   const canManage = isProduction && hasVercelToken
   const busy = pending || testing
+
+  useEffect(() => {
+    isMountedRef.current = true
+    return () => {
+      isMountedRef.current = false
+    }
+  }, [])
 
   const connectedDomain = domain?.domain ? domain : null
   const typedDomain = useMemo(() => previewCustomDomain(input), [input])
@@ -64,30 +72,32 @@ export function CustomDomainManager({ initialDomain, hasFeature, isProduction, h
   const typedRecords = useMemo(() => (typedDomain ? getExpectedDnsRecords(typedDomain) : []), [typedDomain])
 
   async function runTest(target: string) {
+    if (!isMountedRef.current) return
     setTesting(true)
     setError(null)
     setNotice(null)
     try {
       const result = await testCustomDomainDnsAction(target)
+      if (!isMountedRef.current) return
       setTestResult(result)
-      if (result.ok && result.allOk) {
-        toast.success('DNS verificado com sucesso')
-      } else if (result.ok) {
-        toast.error('Os apontamentos DNS ainda não foram encontrados')
-      }
+      if (!result.ok) setError(result.error)
+      else if (result.allOk) toast.success('DNS verificado com sucesso')
+      else toast.error('Os apontamentos DNS ainda não foram encontrados')
     } catch {
-      setError('Não foi possível testar o DNS agora. Tente novamente.')
+      if (isMountedRef.current) setError('Não foi possível testar o DNS agora. Tente novamente.')
     } finally {
-      setTesting(false)
+      if (isMountedRef.current) setTesting(false)
     }
   }
 
   async function run(action: () => ReturnType<typeof connectCustomDomainAction>) {
+    if (!isMountedRef.current) return
     setPending(true)
     setError(null)
     setNotice(null)
     try {
       const result = await action()
+      if (!isMountedRef.current) return
       if (result.domain !== undefined) {
         setDomain(result.domain)
         onDomainChange?.(result.domain)
@@ -102,9 +112,9 @@ export function CustomDomainManager({ initialDomain, hasFeature, isProduction, h
         setError(result.error)
       }
     } catch {
-      setError('Não foi possível concluir a operação. Tente novamente.')
+      if (isMountedRef.current) setError('Não foi possível concluir a operação. Tente novamente.')
     } finally {
-      setPending(false)
+      if (isMountedRef.current) setPending(false)
     }
   }
 
