@@ -59,6 +59,8 @@ export function ProfileForm({ initial, initialDomain, baseHost, hasCustomDomainF
   const [domainRecord, setDomainRecord] = useState(initialDomain)
   const [useCustomDomain, setUseCustomDomain] = useState(initialDomain?.enabled ?? false)
   const [domainPreferencePending, setDomainPreferencePending] = useState(false)
+  const [domainRequiredError, setDomainRequiredError] = useState(false)
+  const domainMissing = useCustomDomain && !domainRecord?.domain
   const [mounted, setMounted] = useState(false)
   const [errors, setErrors] = useState<FieldErrors>({})
   const [whatsapp, setWhatsapp] = useState(formatWhatsappDisplay(initial.whatsapp))
@@ -123,6 +125,12 @@ export function ProfileForm({ initial, initialDomain, baseHost, hasCustomDomainF
 
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (domainMissing) {
+      setDomainRequiredError(true)
+      toast.error('Informe e conecte seu domínio próprio ou desligue a opção “Usar domínio próprio”.')
+      document.getElementById('dominio')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      return
+    }
     const form = new FormData(event.currentTarget)
     const value = (key: string) => String(form.get(key) ?? '')
 
@@ -194,7 +202,7 @@ export function ProfileForm({ initial, initialDomain, baseHost, hasCustomDomainF
             <div className="flex min-w-0 flex-col gap-1">
               <label htmlFor="use-custom-domain" className="text-sm font-medium">Usar domínio próprio</label>
               <p id="domain-usage-hint" className="text-xs leading-relaxed text-muted-foreground">
-                {hasCustomDomainFeature ? 'Desligado: use o endereço da plataforma. Ligado: sua loja abre no domínio conectado.' : 'Disponível no plano Pro/Business.'}
+                {hasCustomDomainFeature ? 'Desligado: use o endereço da plataforma. Ligado: informe seu domínio (obrigatório), crie os apontamentos DNS e teste.' : 'Disponível no plano Pro/Business.'}
               </p>
             </div>
             <Switch
@@ -207,6 +215,11 @@ export function ProfileForm({ initial, initialDomain, baseHost, hasCustomDomainF
             />
           </div>
         </fieldset>
+        {domainRequiredError && domainMissing && (
+          <p role="alert" className="rounded-2xl bg-destructive/10 p-4 text-sm leading-relaxed text-destructive">
+            O domínio é obrigatório com “Usar domínio próprio” ligado. Informe o domínio e clique em “Conectar domínio”, ou desligue a opção para usar o endereço da plataforma.
+          </p>
+        )}
         {!hasCustomDomainFeature && !domainRecord && (
           <Link href="/painel/plano" className="w-fit text-sm font-medium underline underline-offset-4">Ver plano Pro/Business</Link>
         )}

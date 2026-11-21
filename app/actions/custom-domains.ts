@@ -7,8 +7,9 @@ import { hasCustomDomainFeature } from '@/lib/services/custom-domains'
 import { normalizeCustomDomain } from '@/lib/domain-utils'
 import { getStoreDomainForStore, removeStoreDomain, reserveStoreDomain, updateStoreDomain } from '@/lib/repositories/store-domains'
 import { getDomainHosts, ensureProjectDomain, getProjectDomainCheck, removeProjectDomain, verifyProjectDomain, VercelDomainApiError } from '@/lib/vercel-domains'
+import { checkDomainDns } from '@/lib/dns-check'
 import type { StoreDomainVerification } from '@/lib/db/schema'
-import type { CustomDomainActionResult } from '@/lib/domain-types'
+import type { CustomDomainActionResult, DnsTestResult } from '@/lib/domain-types'
 
 const DOMAIN_INPUT_ERROR = 'Informe um domínio válido, por exemplo minhaloja.com.br.'
 
@@ -84,6 +85,25 @@ function errorResult(error: unknown, domain?: CustomDomainActionResult['domain']
     return { ok: false, error: error.message }
   }
   return { ok: false, error: toSafeError(error), domain }
+}
+
+export async function testCustomDomainDnsAction(rawDomain: unknown): Promise<DnsTestResult> {
+  try {
+    const { store } = await getSellerContextOrThrow()
+    if (!(await hasCustomDomainFeature(store.id))) {
+      return { ok: false, error: 'O domínio personalizado está disponível somente no plano Pro/Business.' }
+    }
+    const parsed = z.string().trim().min(1).max(253).safeParse(rawDomain)
+    const domain = parsed.success ? normalizeCustomDomain(parsed.data) : null
+    if (!domain) return { ok: false, error: DOMAIN_INPUT_ERROR }
+
+    const results = await checkDomainDns(domain)
+    return { ok: true, domain, allOk: results.every((result) => result.ok), results }
+  } catch (error) {
+    if (error instanceof UnauthorizedError) return { ok: false, error: 'Faça login para testar seu domínio.' }
+    if (error instanceof SubscriptionExpiredError) return { ok: false, error: error.message }
+    return { ok: false, error: 'Não foi possível consultar o DNS agora. Tente novamente em instantes.' }
+  }
 }
 
 export async function connectCustomDomainAction(rawDomain: unknown): Promise<CustomDomainActionResult> {
