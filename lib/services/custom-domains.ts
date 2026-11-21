@@ -36,7 +36,7 @@ export async function resolveCustomDomainHost(hostname: string) {
     .where(eq(storeDomains.domain, domain))
     .limit(1)
 
-  if (!row || row.storeStatus !== 'active' || row.ownerStatus === 'blocked') return null
+  if (!row || !row.domain || row.storeStatus !== 'active' || row.ownerStatus === 'blocked') return null
   const subscriptionExpired = Boolean(
     EXPIRED_SUBSCRIPTION_STATUSES.has(row.subscriptionStatus) ||
     (row.subscriptionExpiresAt && row.subscriptionExpiresAt.getTime() <= Date.now()),

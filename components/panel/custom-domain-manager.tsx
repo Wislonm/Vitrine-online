@@ -112,8 +112,9 @@ export function CustomDomainManager({ initialDomain, hasFeature, isProduction, h
     void run(() => connectCustomDomainAction(input))
   }
 
-  const apexCheck = domain?.verification.apex
-  const wwwCheck = domain?.verification.www
+  const connectedDomain = domain?.domain ? domain : null
+  const apexCheck = connectedDomain?.verification.apex
+  const wwwCheck = connectedDomain?.verification.www
   const isVerified = Boolean(apexCheck?.verified && !apexCheck.misconfigured && wwwCheck?.verified && !wwwCheck.misconfigured)
 
   return (
@@ -122,7 +123,7 @@ export function CustomDomainManager({ initialDomain, hasFeature, isProduction, h
         <section className="rounded-3xl border border-border bg-muted p-5 sm:p-6" aria-labelledby="domain-plan-title">
           <h2 id="domain-plan-title" className="font-semibold">Domínio personalizado no Pro/Business</h2>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            {domain
+            {connectedDomain
               ? 'O acesso pelo domínio está pausado no plano ou período atual. Reative o Pro para voltar a usá-lo ou desconecte o domínio abaixo.'
               : 'Conecte um domínio próprio quando sua loja estiver em um plano com esse recurso habilitado.'}
           </p>
@@ -142,7 +143,7 @@ export function CustomDomainManager({ initialDomain, hasFeature, isProduction, h
       )}
       {error && <p role="alert" className="rounded-2xl bg-destructive/10 p-4 text-sm leading-relaxed text-destructive">{error}</p>}
 
-      {!domain && hasFeature && (
+      {!connectedDomain && hasFeature && (
         <form onSubmit={submit} className="flex flex-col gap-4 rounded-3xl border border-border bg-background p-5 sm:p-6">
           <div>
             <h2 className="font-semibold">Conectar seu domínio</h2>
@@ -180,21 +181,21 @@ export function CustomDomainManager({ initialDomain, hasFeature, isProduction, h
         </form>
       )}
 
-      {domain && (
+      {connectedDomain && (
         <section className="flex flex-col gap-5 rounded-3xl border border-border bg-background p-5 sm:p-6" aria-labelledby="connected-domain-title">
           <header className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
-              <h2 id="connected-domain-title" className="break-all font-semibold">{domain.domain}</h2>
-              <p className="mt-1 text-sm text-muted-foreground">www.{domain.domain} também aponta para esta vitrine.</p>
+              <h2 id="connected-domain-title" className="break-all font-semibold">{connectedDomain.domain}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">www.{connectedDomain.domain} também aponta para esta vitrine.</p>
             </div>
-            <DomainStatus status={domain.status === 'active' && !hasFeature ? 'error' : domain.status} verified={isVerified} />
+            <DomainStatus status={connectedDomain.status === 'active' && !hasFeature ? 'error' : connectedDomain.status} verified={isVerified} />
           </header>
 
-          {domain.status === 'active' && hasFeature ? (
+          {connectedDomain.status === 'active' && hasFeature ? (
             <div className="flex flex-col gap-2 rounded-2xl bg-muted p-4 text-sm">
               <span className="font-medium">Sua loja já está conectada</span>
-              <a className="break-all underline underline-offset-4" href={`https://${domain.domain}`} target="_blank" rel="noreferrer">https://{domain.domain}</a>
-              <a className="break-all text-muted-foreground underline underline-offset-4" href={`https://www.${domain.domain}`} target="_blank" rel="noreferrer">https://www.{domain.domain} (redireciona para o domínio principal)</a>
+              <a className="break-all underline underline-offset-4" href={`https://${connectedDomain.domain}`} target="_blank" rel="noreferrer">https://{connectedDomain.domain}</a>
+              <a className="break-all text-muted-foreground underline underline-offset-4" href={`https://www.${connectedDomain.domain}`} target="_blank" rel="noreferrer">https://www.{connectedDomain.domain} (redireciona para o domínio principal)</a>
             </div>
           ) : (
             <div className="rounded-2xl bg-muted p-4">
@@ -208,7 +209,7 @@ export function CustomDomainManager({ initialDomain, hasFeature, isProduction, h
             </div>
           )}
 
-          {domain.lastError && <p role="alert" className="rounded-2xl bg-destructive/10 p-4 text-sm leading-relaxed text-destructive">{domain.lastError}</p>}
+          {connectedDomain.lastError && <p role="alert" className="rounded-2xl bg-destructive/10 p-4 text-sm leading-relaxed text-destructive">{connectedDomain.lastError}</p>}
 
           <div className="grid gap-4 lg:grid-cols-2">
             {[

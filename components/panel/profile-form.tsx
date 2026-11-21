@@ -86,7 +86,9 @@ export function ProfileForm({ initial, initialDomain, baseHost, hasCustomDomainF
   async function toggleCustomDomain(enabled: boolean) {
     const previous = useCustomDomain
     setUseCustomDomain(enabled)
-    if (!domainRecord || (enabled && !hasCustomDomainFeature)) return
+    if (!isProduction && domainRecord?.domain) return
+    if (enabled && !hasCustomDomainFeature) return
+    if (!domainRecord && !enabled) return
 
     setDomainPreferencePending(true)
     try {
@@ -289,7 +291,7 @@ export function ProfileForm({ initial, initialDomain, baseHost, hasCustomDomainF
       </fieldset>
 
       <div className="flex flex-wrap gap-3">
-        <Button type="submit" size="lg" disabled={pending || slugCheckPending || Boolean(slugTaken)}>
+        <Button type="submit" size="lg" disabled={pending || domainPreferencePending || slugCheckPending || Boolean(slugTaken)}>
           {pending && <Loader2 className="animate-spin" aria-hidden="true" />}
           Salvar perfil
         </Button>

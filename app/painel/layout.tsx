@@ -20,7 +20,7 @@ export default async function PanelLayout({ children }: { children: React.ReactN
   ])
   const isAdmin = user.role === 'admin'
   const hasCustomDomain = Boolean(planRow?.plan.isActive && planRow.plan.features?.custom_domain)
-  const storeUrl = hasCustomDomain && !subscriptionExpired && domain?.enabled && domain.status === 'active'
+  const storeUrl = hasCustomDomain && !subscriptionExpired && domain?.enabled && domain.domain && domain.status === 'active'
     ? `https://${domain.domain}`
     : `/${store.slug}`
 

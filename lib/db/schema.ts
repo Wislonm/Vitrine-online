@@ -166,7 +166,7 @@ export type StoreDomainVerification = Partial<Record<'apex' | 'www', DomainHostV
 export const storeDomains = pgTable('store_domains', {
   id: uuid('id').primaryKey().defaultRandom(),
   storeId: uuid('store_id').notNull().unique(),
-  domain: text('domain').notNull().unique(),
+  domain: text('domain').unique(),
   enabled: boolean('enabled').notNull().default(true),
   status: text('status', { enum: ['pending', 'active', 'error'] }).notNull().default('pending'),
   verification: jsonb('verification').$type<StoreDomainVerification>().notNull().default({}),
