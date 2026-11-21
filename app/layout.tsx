@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     siteName: SITE_NAME,
     locale: 'pt_BR',
     type: 'website',
-    images: [{ url: SHARE_IMAGE, width: 1200, height: 630, alt: 'Minha Vitrine: vitrine online e pedidos pelo WhatsApp' }],
+    images: [{ url: SHARE_IMAGE, width: 1376, height: 768, alt: 'Minha Vitrine: vitrine online e pedidos pelo WhatsApp' }],
   },
   twitter: {
     card: 'summary_large_image',
