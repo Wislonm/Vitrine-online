@@ -160,6 +160,7 @@ export function CustomDomainManager({ initialDomain, hasFeature, isProduction, h
           <Field label="Domínio" htmlFor="custom-domain" required>
             <Input
               id="custom-domain"
+              required
               value={input}
               onChange={(event) => setInput(event.target.value)}
               placeholder="minhaloja.com.br"
@@ -171,9 +172,9 @@ export function CustomDomainManager({ initialDomain, hasFeature, isProduction, h
               aria-describedby="custom-domain-hint"
             />
           </Field>
-          <p id="custom-domain-hint" className="text-xs leading-relaxed text-muted-foreground">Digite somente o domínio. Depois mostraremos os registros DNS exatos para configurar no seu provedor.</p>
+          <p id="custom-domain-hint" className="text-xs leading-relaxed text-muted-foreground">Digite o domínio raiz sem www. O botão Conectar habilita após o preenchimento; os apontamentos específicos (A/IP, CNAME de www e TXT, se necessário) aparecem depois que a Vercel associa o domínio.</p>
           <div>
-            <Button type="submit" disabled={pending || !canManage || input.trim().length < 3}>
+            <Button type="submit" disabled={pending || !canManage}>
               {pending ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Globe aria-hidden="true" />}
               Conectar domínio
             </Button>
