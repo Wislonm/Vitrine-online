@@ -19,7 +19,7 @@ function isProductionDomainManagementEnabled() {
 function toSafeError(error: unknown) {
   if (error instanceof VercelDomainApiError) {
     if (error.code === 'missing_token') return 'O gerenciamento de domínios está temporariamente indisponível.'
-    if (error.status === 401 || error.status === 403) return 'A Vercel recusou a credencial de domínio. Fale com o suporte.'
+    if (error.status === 401 || error.status === 403) return 'A Vercel recusou o token ou ele não tem acesso a este projeto. Atualize VERCEL_API_TOKEN com um token da equipe que possa gerenciar domínios.'
     if (error.status === 409 || error.code === 'domain_already_in_use') return 'Esse domínio já está associado a outro projeto Vercel.'
     if (error.status === 429) return 'Muitas verificações. Aguarde alguns instantes e tente novamente.'
   }
