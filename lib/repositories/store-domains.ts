@@ -17,6 +17,7 @@ export async function updateStoreDomain(
   storeId: string,
   data: {
     status?: 'pending' | 'active' | 'error'
+    enabled?: boolean
     verification?: StoreDomainVerification
     lastCheckedAt?: Date | null
     verifiedAt?: Date | null
@@ -41,7 +42,7 @@ export async function findActiveStoreDomainByHost(hostname: string) {
   const [row] = await db
     .select({ domain: storeDomains.domain, storeId: storeDomains.storeId })
     .from(storeDomains)
-    .where(and(eq(storeDomains.domain, domain), eq(storeDomains.status, 'active')))
+    .where(and(eq(storeDomains.domain, domain), eq(storeDomains.status, 'active'), eq(storeDomains.enabled, true)))
     .limit(1)
   return row ?? null
 }

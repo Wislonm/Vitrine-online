@@ -156,6 +156,39 @@ export async function verifyCustomDomainAction(): Promise<CustomDomainActionResu
   }
 }
 
+export async function setCustomDomainEnabledAction(rawEnabled: unknown): Promise<CustomDomainActionResult> {
+  const parsed = z.boolean().safeParse(rawEnabled)
+  if (!parsed.success) return { ok: false, error: 'Escolha uma opção válida para o domínio.' }
+  const enabled = parsed.data
+  let storeId: string | undefined
+  let savedDomain: CustomDomainActionResult['domain']
+
+  try {
+    const context = enabled
+      ? await requireEligibleSeller()
+      : await getSellerContextOrThrow({ allowExpiredPlan: true })
+    storeId = context.store.id
+    const existing = await getStoreDomainForStore(context.store.id)
+    if (!existing) {
+      return enabled
+        ? { ok: false, error: 'Conecte um domínio antes de ativá-lo.' }
+        : { ok: true, domain: null, message: 'O endereço padrão da plataforma está selecionado.' }
+    }
+    savedDomain = existing
+    const updated = await updateStoreDomain(context.store.id, { enabled })
+    if (!updated) return { ok: false, error: 'Não foi possível salvar a preferência do domínio.', domain: existing }
+    revalidatePath('/painel/perfil')
+    revalidatePath('/painel', 'layout')
+    return {
+      ok: true,
+      domain: updated,
+      message: enabled ? 'O domínio personalizado foi selecionado.' : 'O endereço padrão da plataforma foi selecionado.',
+    }
+  } catch (error) {
+    return errorResult(error, savedDomain)
+  }
+}
+
 export async function disconnectCustomDomainAction(): Promise<CustomDomainActionResult> {
   let storeId: string | undefined
   let savedDomain: CustomDomainActionResult['domain']

@@ -16,6 +16,7 @@ type CustomDomainManagerProps = {
   hasFeature: boolean
   isProduction: boolean
   hasVercelToken: boolean
+  onDomainChange?: (domain: StoreDomain | null) => void
 }
 
 function DomainStatus({ status, verified }: { status: StoreDomain['status']; verified: boolean }) {
@@ -75,7 +76,7 @@ function DnsRecords({ check }: { check: DomainHostVerification | undefined }) {
   )
 }
 
-export function CustomDomainManager({ initialDomain, hasFeature, isProduction, hasVercelToken }: CustomDomainManagerProps) {
+export function CustomDomainManager({ initialDomain, hasFeature, isProduction, hasVercelToken, onDomainChange }: CustomDomainManagerProps) {
   const [domain, setDomain] = useState(initialDomain)
   const [input, setInput] = useState(initialDomain?.domain ?? '')
   const [pending, setPending] = useState(false)
@@ -88,7 +89,10 @@ export function CustomDomainManager({ initialDomain, hasFeature, isProduction, h
     setError(null)
     try {
       const result = await action()
-      if (result.domain !== undefined) setDomain(result.domain)
+      if (result.domain !== undefined) {
+        setDomain(result.domain)
+        onDomainChange?.(result.domain)
+      }
       if (result.ok) {
         toast.success(result.message)
         setInput(result.domain?.domain ?? '')
@@ -186,7 +190,7 @@ export function CustomDomainManager({ initialDomain, hasFeature, isProduction, h
             </div>
           ) : (
             <div className="rounded-2xl bg-muted p-4 text-sm leading-relaxed text-muted-foreground">
-              Adicione os registros abaixo no painel DNS do seu domínio. A Vercel verifica a configuração e provisiona o certificado HTTPS automaticamente.
+              Adicione os registros abaixo no painel DNS do seu domínio. A Vercel verifica a configuração e provisiona o certificado HTTPS automaticamente. Até a verificação concluir, o botão “Ver loja” continua usando o endereço da plataforma.
             </div>
           )}
 

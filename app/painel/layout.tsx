@@ -20,20 +20,20 @@ export default async function PanelLayout({ children }: { children: React.ReactN
   ])
   const isAdmin = user.role === 'admin'
   const hasCustomDomain = Boolean(planRow?.plan.isActive && planRow.plan.features?.custom_domain)
-  const storeUrl = hasCustomDomain && !subscriptionExpired && domain?.status === 'active'
+  const storeUrl = hasCustomDomain && !subscriptionExpired && domain?.enabled && domain.status === 'active'
     ? `https://${domain.domain}`
     : `/${store.slug}`
 
   return (
     <div className="seller-panel flex min-h-dvh" style={getStoreThemeStyle(settings?.colorScheme)}>
-      <PanelSidebar isAdmin={isAdmin} userName={user.name} storeUrl={storeUrl} subscriptionExpired={subscriptionExpired} hasCustomDomain={hasCustomDomain} />
+      <PanelSidebar isAdmin={isAdmin} userName={user.name} storeUrl={storeUrl} subscriptionExpired={subscriptionExpired} />
       <div className="flex min-w-0 flex-1 flex-col">
         <PanelMobileHeader isAdmin={isAdmin} storeUrl={storeUrl} subscriptionExpired={subscriptionExpired} />
         <main className="mx-auto min-w-0 w-full max-w-4xl flex-1 overflow-x-hidden px-5 pt-8 pb-28 md:px-10 md:pt-12 md:pb-16">
           {children}
         </main>
       </div>
-      <PanelMobileNav subscriptionExpired={subscriptionExpired} hasCustomDomain={hasCustomDomain} />
+      <PanelMobileNav subscriptionExpired={subscriptionExpired} />
     </div>
   )
 }
