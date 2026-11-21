@@ -148,6 +148,14 @@ export function CustomDomainManager({ initialDomain, hasFeature, isProduction, h
             <h2 className="font-semibold">Conectar seu domínio</h2>
             <p className="mt-1 text-sm leading-relaxed text-muted-foreground">Informe o domínio principal, por exemplo minhaloja.com.br. O acesso com www será configurado automaticamente.</p>
           </div>
+          <div className="rounded-2xl bg-muted p-4">
+            <p className="text-sm font-medium">Como funciona</p>
+            <ol className="mt-3 flex list-decimal flex-col gap-2 pl-5 text-sm leading-relaxed text-muted-foreground">
+              <li>Informe seu domínio e clique em Conectar domínio.</li>
+              <li>A tela mostrará os registros exatos: quando indicado, A com o IP da Vercel para o domínio raiz, CNAME para www e TXT para verificação.</li>
+              <li>Cadastre-os no painel DNS do registrador, preserve os registros MX de e-mail e depois clique em Verificar DNS. O HTTPS será configurado pela Vercel.</li>
+            </ol>
+          </div>
           <Field label="Domínio" htmlFor="custom-domain" required>
             <Input
               id="custom-domain"
