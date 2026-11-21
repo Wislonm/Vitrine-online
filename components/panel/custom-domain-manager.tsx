@@ -189,8 +189,14 @@ export function CustomDomainManager({ initialDomain, hasFeature, isProduction, h
               <a className="break-all text-muted-foreground underline underline-offset-4" href={`https://www.${domain.domain}`} target="_blank" rel="noreferrer">https://www.{domain.domain} (redireciona para o domínio principal)</a>
             </div>
           ) : (
-            <div className="rounded-2xl bg-muted p-4 text-sm leading-relaxed text-muted-foreground">
-              Adicione os registros abaixo no painel DNS do seu domínio. A Vercel verifica a configuração e provisiona o certificado HTTPS automaticamente. Até a verificação concluir, o botão “Ver loja” continua usando o endereço da plataforma.
+            <div className="rounded-2xl bg-muted p-4">
+              <p className="text-sm font-medium">Como configurar o DNS</p>
+              <ol className="mt-3 flex list-decimal flex-col gap-2 pl-5 text-sm leading-relaxed text-muted-foreground">
+                <li>Acesse o painel DNS do registrador onde comprou o domínio.</li>
+                <li>No domínio raiz, crie cada registro A listado e use como IP o valor exibido. Para www, configure o CNAME com o destino mostrado. Se houver TXT de verificação, adicione-o também; preserve os demais registros, especialmente os de e-mail (MX).</li>
+                <li>Aguarde a propagação e clique em “Verificar DNS”. Depois da validação, a Vercel provisiona o HTTPS automaticamente.</li>
+              </ol>
+              <p className="mt-3 text-xs leading-relaxed text-muted-foreground">Enquanto os registros propagam, o botão “Ver loja” continua usando o endereço da plataforma.</p>
             </div>
           )}
 
