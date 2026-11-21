@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { getSellerContextOrThrow, UnauthorizedError } from '@/lib/session'
 import { isSlugTaken, updateStoreAndOwner, updateStoreSettings, getStoreSettings } from '@/lib/repositories/stores'
 import { isEmailRegistered, isStorePhoneRegistered, isWhatsappRegistered } from '@/lib/repositories/store-uniqueness'
+import { getStoreDomainForStore } from '@/lib/repositories/store-domains'
 import { normalizeWhatsapp } from '@/lib/format'
 import { heroSchema, profileSchema, zodFieldErrors, type ActionResult } from '@/lib/validators'
 import { isAssetOwnedByStore, removeAssetIfOwned } from '@/lib/storage'
@@ -13,6 +14,11 @@ const SESSION_ERROR = 'Sua sessão expirou. Entre novamente.'
 export async function updateProfileAction(raw: unknown): Promise<ActionResult> {
   try {
     const { user, store } = await getSellerContextOrThrow()
+
+    const domainRecord = await getStoreDomainForStore(store.id)
+    if (domainRecord?.enabled && !domainRecord.domain) {
+      return { ok: false, error: 'Informe e conecte seu domínio próprio ou desligue a opção “Usar domínio próprio” para salvar.' }
+    }
 
     const parsed = profileSchema.safeParse(raw)
     if (!parsed.success) {
