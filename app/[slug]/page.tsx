@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { headers } from 'next/headers'
 import { notFound } from 'next/navigation'
 import { StoreFooter } from '@/components/storefront/store-footer'
 import { StoreHero } from '@/components/storefront/store-hero'
@@ -17,23 +18,25 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const store = await getPublicStore(slug.toLowerCase())
   if (!store) return { title: 'Vitrine não encontrada', robots: { index: false } }
 
-  const settings = await getStoreSettings(store.id)
+  const [settings, requestHeaders] = await Promise.all([getStoreSettings(store.id), headers()])
   const title = settings?.displayName || store.name
   const description =
     settings?.heroDescription || store.description || `Conheça a vitrine de ${title} e faça seu pedido pelo WhatsApp.`
   const image = settings?.bannerUrl || settings?.avatarUrl || undefined
+  const customDomain = requestHeaders.get('x-store-domain')
+  const canonical = customDomain ? `https://${customDomain}/` : `/${store.slug}`
 
   return {
     title,
     description,
-    alternates: { canonical: `/${store.slug}` },
+    alternates: { canonical },
     openGraph: {
       type: 'website',
       title,
       description,
       siteName: 'Minha Vitrine',
       locale: 'pt_BR',
-      url: `/${store.slug}`,
+      url: canonical,
       images: image ? [{ url: image }] : undefined,
     },
     twitter: { card: image ? 'summary_large_image' : 'summary', title, description, images: image ? [image] : undefined },

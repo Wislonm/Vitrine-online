@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { headers } from 'next/headers'
 import { notFound } from 'next/navigation'
 import { CartProvider } from '@/components/storefront/cart-context'
 import { ProductDetail } from '@/components/storefront/product-detail'
@@ -13,8 +14,27 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug, productId } = await params
   const store = await getPublicStore(slug.toLowerCase())
   if (!store) return { title: 'Produto não encontrado', robots: { index: false } }
-  const product = await getProduct(store.id, productId)
-  return { title: product?.name ?? 'Produto não encontrado', robots: product ? undefined : { index: false } }
+  const [product, requestHeaders] = await Promise.all([getProduct(store.id, productId), headers()])
+  if (!product || !product.isActive || !product.isPublished) return { title: 'Produto não encontrado', robots: { index: false } }
+  const customDomain = requestHeaders.get('x-store-domain')
+  const canonical = customDomain ? `https://${customDomain}/${productId}` : `/${store.slug}/${productId}`
+  const image = product.imageUrl || product.galleryImages[0] || undefined
+  const description = product.description || `Conheça ${product.name} na vitrine ${store.name} e faça seu pedido pelo WhatsApp.`
+  return {
+    title: product.name,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      type: 'website',
+      title: product.name,
+      description,
+      siteName: 'Minha Vitrine',
+      locale: 'pt_BR',
+      url: canonical,
+      images: image ? [{ url: image }] : undefined,
+    },
+    twitter: { card: image ? 'summary_large_image' : 'summary', title: product.name, description, images: image ? [image] : undefined },
+  }
 }
 
 export default async function ProductDetailPage({ params }: { params: Promise<{ slug: string; productId: string }> }) {

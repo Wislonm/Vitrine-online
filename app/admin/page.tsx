@@ -7,6 +7,7 @@ const actionLabels: Record<string, string> = {
   unblock_account: 'Desbloqueou uma conta',
   delete_account: 'Excluiu uma conta e os dados relacionados',
   delete_account_media_cleanup_failed: 'Exclusão de mídia pendente após remover uma conta',
+  delete_account_domain_cleanup_failed: 'Domínio pendente de remoção na Vercel após excluir uma conta',
   update_plan: 'Editou um plano',
 }
 

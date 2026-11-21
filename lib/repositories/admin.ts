@@ -1,6 +1,6 @@
 import { desc, eq, ilike, or, sql } from 'drizzle-orm'
 import { db } from '@/lib/db'
-import { adminAuditLog, orders, plans, productVariationOptions, productVariations, products, session, storeSettings, stores, subscriptions, user, verification } from '@/lib/db/schema'
+import { adminAuditLog, orders, plans, productVariationOptions, productVariations, products, session, storeDomains, storeSettings, stores, subscriptions, user, verification } from '@/lib/db/schema'
 
 export async function getAdminStats() {
   const [usersRow] = await db.select({ total: sql<number>`count(*)::int` }).from(user)
@@ -130,6 +130,7 @@ export async function getAccountDeletionSnapshot(userId: string) {
       role: user.role,
       storeId: stores.id,
       storeStatus: stores.status,
+      customDomain: storeDomains.domain,
       preapprovalId: subscriptions.mercadoPagoPreapprovalId,
       paymentId: subscriptions.mercadoPagoPaymentId,
       paymentStatus: subscriptions.mercadoPagoStatus,
@@ -137,6 +138,7 @@ export async function getAccountDeletionSnapshot(userId: string) {
     })
     .from(user)
     .leftJoin(stores, eq(stores.ownerUserId, user.id))
+    .leftJoin(storeDomains, eq(storeDomains.storeId, stores.id))
     .leftJoin(subscriptions, eq(subscriptions.storeId, stores.id))
     .where(eq(user.id, userId))
     .limit(1)
@@ -194,6 +196,10 @@ export async function deleteAccountPermanently(input: {
     if (billing?.checkoutStartedAt && !billing.preapprovalId && !billing.paymentId) {
       return { status: 'checkout_processing' as const }
     }
+
+    const [domainRecord] = store
+      ? await tx.select({ domain: storeDomains.domain }).from(storeDomains).where(eq(storeDomains.storeId, store.id)).limit(1)
+      : [undefined]
 
     const assetUrls = new Set<string>()
     if (target.image) assetUrls.add(target.image)
@@ -256,6 +262,8 @@ export async function deleteAccountPermanently(input: {
         pendingPaymentResolved: Boolean(input.resolvedPaymentId),
       },
     })
+    if (store) await tx.delete(storeDomains).where(eq(storeDomains.storeId, store.id))
+    if (store) await tx.delete(storeDomains).where(eq(storeDomains.storeId, store.id))
     await tx.delete(verification).where(or(eq(verification.value, target.id), eq(verification.identifier, target.email)))
     await tx.delete(user).where(eq(user.id, target.id))
 
@@ -264,6 +272,7 @@ export async function deleteAccountPermanently(input: {
       userId: target.id,
       email: target.email,
       storeId: store?.id ?? null,
+      customDomain: domainRecord?.domain ?? null,
       assetUrls: [...assetUrls],
       productCount,
       orderCount,
