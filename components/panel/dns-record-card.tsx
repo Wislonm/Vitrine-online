@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Check, Clipboard } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -36,12 +36,28 @@ async function writeToClipboard(value: string) {
 
 function CopyButton({ value, label }: { value: string; label: string }) {
   const [copied, setCopied] = useState(false)
+  const isMountedRef = useRef(false)
+  const resetTimerRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    isMountedRef.current = true
+    return () => {
+      isMountedRef.current = false
+      if (resetTimerRef.current !== null) window.clearTimeout(resetTimerRef.current)
+    }
+  }, [])
 
   async function copy() {
-    if (await writeToClipboard(value)) {
+    const success = await writeToClipboard(value)
+    if (!isMountedRef.current) return
+    if (success) {
       setCopied(true)
       toast.success(`${label} copiado`)
-      window.setTimeout(() => setCopied(false), 1800)
+      if (resetTimerRef.current !== null) window.clearTimeout(resetTimerRef.current)
+      resetTimerRef.current = window.setTimeout(() => {
+        resetTimerRef.current = null
+        if (isMountedRef.current) setCopied(false)
+      }, 1800)
     } else {
       toast.error('Não foi possível copiar automaticamente')
     }

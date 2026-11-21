@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
 import useSWR from 'swr'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -60,6 +60,7 @@ export function ProfileForm({ initial, initialDomain, baseHost, hasCustomDomainF
   const [useCustomDomain, setUseCustomDomain] = useState(initialDomain?.enabled ?? false)
   const [domainPreferencePending, setDomainPreferencePending] = useState(false)
   const [domainRequiredError, setDomainRequiredError] = useState(false)
+  const isMountedRef = useRef(false)
   const domainMissing = useCustomDomain && !domainRecord?.domain
   const [mounted, setMounted] = useState(false)
   const [errors, setErrors] = useState<FieldErrors>({})
@@ -95,6 +96,7 @@ export function ProfileForm({ initial, initialDomain, baseHost, hasCustomDomainF
     setDomainPreferencePending(true)
     try {
       const result = await setCustomDomainEnabledAction(enabled)
+      if (!isMountedRef.current) return
       if (!result.ok) {
         setUseCustomDomain(previous)
         toast.error(result.error)
@@ -103,15 +105,21 @@ export function ProfileForm({ initial, initialDomain, baseHost, hasCustomDomainF
       handleDomainChange(result.domain)
       toast.success(result.message)
     } catch {
-      setUseCustomDomain(previous)
-      toast.error('Não foi possível salvar a preferência de domínio.')
+      if (isMountedRef.current) {
+        setUseCustomDomain(previous)
+        toast.error('Não foi possível salvar a preferência de domínio.')
+      }
     } finally {
-      setDomainPreferencePending(false)
+      if (isMountedRef.current) setDomainPreferencePending(false)
     }
   }
 
   useEffect(() => {
+    isMountedRef.current = true
     setMounted(true)
+    return () => {
+      isMountedRef.current = false
+    }
   }, [])
 
   useEffect(() => {
@@ -151,6 +159,7 @@ export function ProfileForm({ initial, initialDomain, baseHost, hasCustomDomainF
         tiktok: value('tiktok'),
         website: value('website'),
       })
+      if (!isMountedRef.current) return
       if (result.ok) {
         setErrors({})
         toast.success(result.message ?? 'Perfil atualizado')
