@@ -146,6 +146,36 @@ export const stores = pgTable('stores', {
   updatedAt: timestamp('updated_at', tz).notNull().defaultNow(),
 })
 
+export type DomainDnsRecord = {
+  name: string
+  type: string
+  value: string
+  reason?: string
+}
+
+export type DomainHostVerification = {
+  hostname: string
+  verified: boolean
+  misconfigured: boolean
+  dnsRecords: DomainDnsRecord[]
+  error?: string
+}
+
+export type StoreDomainVerification = Partial<Record<'apex' | 'www', DomainHostVerification>>
+
+export const storeDomains = pgTable('store_domains', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  storeId: uuid('store_id').notNull().unique(),
+  domain: text('domain').notNull().unique(),
+  status: text('status', { enum: ['pending', 'active', 'error'] }).notNull().default('pending'),
+  verification: jsonb('verification').$type<StoreDomainVerification>().notNull().default({}),
+  lastCheckedAt: timestamp('last_checked_at', tz),
+  verifiedAt: timestamp('verified_at', tz),
+  lastError: text('last_error'),
+  createdAt: timestamp('created_at', tz).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', tz).notNull().defaultNow(),
+})
+
 export const storeSettings = pgTable('store_settings', {
   id: uuid('id').primaryKey().defaultRandom(),
   storeId: uuid('store_id')

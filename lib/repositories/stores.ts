@@ -22,6 +22,11 @@ export async function findStoreBySlug(slug: string) {
   return row ?? null
 }
 
+export async function findStoreById(storeId: string) {
+  const [row] = await db.select().from(stores).where(eq(stores.id, storeId)).limit(1)
+  return row ?? null
+}
+
 export async function isSlugTaken(slug: string, exceptStoreId?: string) {
   const [row] = await db
     .select({ id: stores.id })
