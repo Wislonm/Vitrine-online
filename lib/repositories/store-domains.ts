@@ -8,7 +8,7 @@ export function getStoreDomainForStore(storeId: string) {
   return db.query.storeDomains.findFirst({ where: eq(storeDomains.storeId, storeId) })
 }
 
-export async function reserveStoreDomain(storeId: string, domain: string) {
+export async function reserveStoreDomain(storeId: string, domain: string | null) {
   const [row] = await db.insert(storeDomains).values({ storeId, domain }).returning()
   return row
 }
@@ -16,6 +16,7 @@ export async function reserveStoreDomain(storeId: string, domain: string) {
 export async function updateStoreDomain(
   storeId: string,
   data: {
+    domain?: string | null
     status?: 'pending' | 'active' | 'error'
     enabled?: boolean
     verification?: StoreDomainVerification

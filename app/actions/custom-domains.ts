@@ -99,10 +99,14 @@ export async function connectCustomDomainAction(rawDomain: unknown): Promise<Cus
     if (!domain) return { ok: false, error: DOMAIN_INPUT_ERROR }
 
     const existing = await getStoreDomainForStore(store.id)
-    if (existing && existing.domain !== domain) {
+    if (existing?.domain && existing.domain !== domain) {
       return { ok: false, error: `Desconecte ${existing.domain} antes de cadastrar outro domínio.`, domain: existing }
     }
-    savedDomain = existing ?? await reserveStoreDomain(store.id, domain)
+    savedDomain = existing
+      ? existing.domain
+        ? await updateStoreDomain(store.id, { enabled: true }) ?? existing
+        : await updateStoreDomain(store.id, { domain, enabled: true, status: 'pending', verification: {}, verifiedAt: null, lastError: null }) ?? existing
+      : await reserveStoreDomain(store.id, domain)
     const { saved, active } = await refreshDomain(domain, store.id, false)
     revalidatePath('/painel/dominio')
     revalidatePath('/painel', 'layout')
@@ -132,7 +136,7 @@ export async function verifyCustomDomainAction(): Promise<CustomDomainActionResu
     const { store } = await requireEligibleSeller()
     storeId = store.id
     const existing = await getStoreDomainForStore(store.id)
-    if (!existing) return { ok: false, error: 'Cadastre um domínio antes de verificar.' }
+    if (!existing?.domain) return { ok: false, error: 'Informe e conecte um domínio antes de verificar.' }
     savedDomain = existing
 
     const { saved, active } = await refreshDomain(existing.domain, store.id, true)
@@ -165,18 +169,22 @@ export async function setCustomDomainEnabledAction(rawEnabled: unknown): Promise
 
   try {
     const context = enabled
-      ? await requireEligibleSeller()
+      ? await getSellerContextOrThrow()
       : await getSellerContextOrThrow({ allowExpiredPlan: true })
     storeId = context.store.id
-    const existing = await getStoreDomainForStore(context.store.id)
-    if (!existing) {
-      return enabled
-        ? { ok: false, error: 'Conecte um domínio antes de ativá-lo.' }
-        : { ok: true, domain: null, message: 'O endereço padrão da plataforma está selecionado.' }
+    if (enabled && !(await hasCustomDomainFeature(context.store.id))) {
+      return { ok: false, error: 'O domínio personalizado está disponível somente no plano Pro/Business.' }
     }
-    savedDomain = existing
+    const existing = await getStoreDomainForStore(context.store.id)
+    if (existing?.domain && process.env.VERCEL_ENV !== 'production') {
+      return { ok: false, error: 'A preferência de um domínio já conectado só pode ser alterada em produção.', domain: existing }
+    }
+    if (!existing && !enabled) {
+      return { ok: true, domain: null, message: 'O endereço padrão da plataforma está selecionado.' }
+    }
+    savedDomain = existing ?? await reserveStoreDomain(context.store.id, null)
     const updated = await updateStoreDomain(context.store.id, { enabled })
-    if (!updated) return { ok: false, error: 'Não foi possível salvar a preferência do domínio.', domain: existing }
+    if (!updated) return { ok: false, error: 'Não foi possível salvar a preferência do domínio.', domain: savedDomain }
     revalidatePath('/painel/perfil')
     revalidatePath('/painel', 'layout')
     return {
@@ -205,8 +213,10 @@ export async function disconnectCustomDomainAction(): Promise<CustomDomainAction
     if (!existing) return { ok: true, domain: null, message: 'Nenhum domínio personalizado está conectado.' }
     savedDomain = existing
 
-    await updateStoreDomain(store.id, { status: 'error', lastError: null, lastCheckedAt: new Date() })
-    await Promise.all(getDomainHosts(existing.domain).map(removeProjectDomain))
+    if (existing.domain) {
+      await updateStoreDomain(store.id, { status: 'error', lastError: null, lastCheckedAt: new Date() })
+      await Promise.all(getDomainHosts(existing.domain).map(removeProjectDomain))
+    }
     await removeStoreDomain(store.id)
     revalidatePath('/painel/dominio')
     revalidatePath('/painel', 'layout')
