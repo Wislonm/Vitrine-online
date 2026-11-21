@@ -2,12 +2,17 @@
 
 import { useEffect, useState, useTransition } from 'react'
 import useSWR from 'swr'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Loader2, LogOut } from 'lucide-react'
 import { authClient } from '@/lib/auth-client'
 import { toast } from 'sonner'
 import { updateProfileAction } from '@/app/actions/store'
+import { setCustomDomainEnabledAction } from '@/app/actions/custom-domains'
+import { CustomDomainManager } from '@/components/panel/custom-domain-manager'
 import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
+import type { StoreDomain } from '@/lib/db/schema'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { PhoneInput } from '@/components/ui/phone-input'
@@ -26,6 +31,10 @@ async function fetchSlugAvailability(url: string): Promise<SlugAvailability> {
 
 type ProfileFormProps = {
   baseHost: string
+  initialDomain: StoreDomain | null
+  hasCustomDomainFeature: boolean
+  isProduction: boolean
+  hasVercelToken: boolean
   initial: {
     ownerName: string
     name: string
@@ -44,9 +53,12 @@ type ProfileFormProps = {
   }
 }
 
-export function ProfileForm({ initial, baseHost }: ProfileFormProps) {
+export function ProfileForm({ initial, initialDomain, baseHost, hasCustomDomainFeature, isProduction, hasVercelToken }: ProfileFormProps) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
+  const [domainRecord, setDomainRecord] = useState(initialDomain)
+  const [useCustomDomain, setUseCustomDomain] = useState(initialDomain?.enabled ?? false)
+  const [domainPreferencePending, setDomainPreferencePending] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [errors, setErrors] = useState<FieldErrors>({})
   const [whatsapp, setWhatsapp] = useState(formatWhatsappDisplay(initial.whatsapp))
@@ -64,6 +76,34 @@ export function ProfileForm({ initial, baseHost }: ProfileFormProps) {
 
   function updateField(field: keyof typeof initial, value: string) {
     setFormValues((current) => ({ ...current, [field]: value }))
+  }
+
+  function handleDomainChange(nextDomain: StoreDomain | null) {
+    setDomainRecord(nextDomain)
+    setUseCustomDomain(nextDomain?.enabled ?? false)
+  }
+
+  async function toggleCustomDomain(enabled: boolean) {
+    const previous = useCustomDomain
+    setUseCustomDomain(enabled)
+    if (!domainRecord || (enabled && !hasCustomDomainFeature)) return
+
+    setDomainPreferencePending(true)
+    try {
+      const result = await setCustomDomainEnabledAction(enabled)
+      if (!result.ok) {
+        setUseCustomDomain(previous)
+        toast.error(result.error)
+        return
+      }
+      handleDomainChange(result.domain)
+      toast.success(result.message)
+    } catch {
+      setUseCustomDomain(previous)
+      toast.error('Não foi possível salvar a preferência de domínio.')
+    } finally {
+      setDomainPreferencePending(false)
+    }
   }
 
   useEffect(() => {
@@ -123,27 +163,62 @@ export function ProfileForm({ initial, baseHost }: ProfileFormProps) {
             <Input id="name" name="name" value={formValues.name} onChange={(e) => updateField('name', e.target.value)} aria-invalid={!!errors.name} />
           </Field>
         </div>
-        <Field
-          label="Endereço da vitrine"
-          htmlFor="slug"
-          hint="Se você mudar, os links antigos deixam de funcionar."
-          error={errors.slug?.[0]}
-        >
-          <div className="flex items-center rounded-full bg-muted pl-5 focus-within:bg-background focus-within:ring-3 focus-within:ring-ring/30">
-            <span className="text-sm text-muted-foreground">{baseHost}/</span>
-            <Input
-              id="slug"
-              value={slug}
-              onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-              className="bg-transparent pl-1 focus-visible:bg-transparent focus-visible:ring-0"
-              maxLength={40}
-              aria-invalid={!!errors.slug || slugTaken}
+        {!useCustomDomain && (
+          <Field
+            label="Endereço da vitrine"
+            htmlFor="slug"
+            hint="Se você mudar, os links antigos deixam de funcionar."
+            error={errors.slug?.[0]}
+          >
+            <div className="flex items-center rounded-full bg-muted pl-5 focus-within:bg-background focus-within:ring-3 focus-within:ring-ring/30">
+              <span className="text-sm text-muted-foreground">{baseHost}/</span>
+              <Input
+                id="slug"
+                value={slug}
+                onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                className="bg-transparent pl-1 focus-visible:bg-transparent focus-visible:ring-0"
+                maxLength={40}
+                aria-invalid={!!errors.slug || slugTaken}
+              />
+            </div>
+            {shouldCheckSlug && <p aria-live="polite" className={`px-1 text-xs ${slugCheckPending ? 'text-muted-foreground' : slugTaken ? 'text-destructive' : slugAvailability?.slug === slug && slugAvailability.available ? 'text-sage' : 'text-muted-foreground'}`}>
+              {slugCheckPending ? 'Verificando disponibilidade...' : slugAvailability?.slug === slug ? slugAvailability.available ? 'Este endereço está disponível.' : 'Este endereço já está em uso.' : slugAvailabilityError ? 'Não foi possível verificar agora; tente novamente.' : null}
+            </p>}
+          </Field>
+        )}
+        <fieldset id="dominio" className="scroll-mt-24 rounded-2xl border border-border bg-background p-4">
+          <legend className="sr-only">Domínio da vitrine</legend>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex min-w-0 flex-col gap-1">
+              <label htmlFor="use-custom-domain" className="text-sm font-medium">Usar domínio próprio</label>
+              <p id="domain-usage-hint" className="text-xs leading-relaxed text-muted-foreground">
+                {hasCustomDomainFeature ? 'Desligado: use o endereço da plataforma. Ligado: sua loja abre no domínio conectado.' : 'Disponível no plano Pro/Business.'}
+              </p>
+            </div>
+            <Switch
+              id="use-custom-domain"
+              checked={useCustomDomain}
+              onCheckedChange={(checked) => void toggleCustomDomain(checked)}
+              disabled={domainPreferencePending || (!hasCustomDomainFeature && !useCustomDomain && !domainRecord)}
+              aria-label="Usar domínio próprio"
+              aria-describedby="domain-usage-hint"
             />
           </div>
-          {shouldCheckSlug && <p aria-live="polite" className={`px-1 text-xs ${slugCheckPending ? 'text-muted-foreground' : slugTaken ? 'text-destructive' : slugAvailability?.slug === slug && slugAvailability.available ? 'text-sage' : 'text-muted-foreground'}`}>
-            {slugCheckPending ? 'Verificando disponibilidade...' : slugAvailability?.slug === slug ? slugAvailability.available ? 'Este endereço está disponível.' : 'Este endereço já está em uso.' : slugAvailabilityError ? 'Não foi possível verificar agora; tente novamente.' : null}
-          </p>}
-        </Field>
+        </fieldset>
+        {!hasCustomDomainFeature && !domainRecord && (
+          <Link href="/painel/plano" className="w-fit text-sm font-medium underline underline-offset-4">Ver plano Pro/Business</Link>
+        )}
+        {useCustomDomain && (
+          <div className="scroll-mt-6">
+            <CustomDomainManager
+              initialDomain={domainRecord}
+              hasFeature={hasCustomDomainFeature}
+              isProduction={isProduction}
+              hasVercelToken={hasVercelToken}
+              onDomainChange={handleDomainChange}
+            />
+          </div>
+        )}
         <Field label="Descrição da loja" htmlFor="description" error={errors.description?.[0]}>
           <Textarea id="description" name="description" value={formValues.description} onChange={(e) => updateField('description', e.target.value)} maxLength={400} />
         </Field>

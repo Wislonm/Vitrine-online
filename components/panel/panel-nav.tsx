@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { ExternalLink, Gem, Globe, LayoutDashboard, LogOut, Package, Palette, ShieldCheck, Tags, UserRound } from 'lucide-react'
+import { ExternalLink, Gem, LayoutDashboard, LogOut, Package, Palette, ShieldCheck, Tags, UserRound } from 'lucide-react'
 import { authClient } from '@/lib/auth-client'
 import { Logo } from '@/components/brand/logo'
 import { cn } from '@/lib/utils'
@@ -12,7 +12,6 @@ const items = [
   { href: '/painel/produtos', label: 'Produtos', icon: Package },
   { href: '/painel/categorias', label: 'Categorias', icon: Tags },
   { href: '/painel/vitrine', label: 'Vitrine', icon: Palette },
-  { href: '/painel/dominio', label: 'Domínio', icon: Globe },
   { href: '/painel/perfil', label: 'Perfil', icon: UserRound },
   { href: '/painel/plano', label: 'Plano', icon: Gem },
 ]
@@ -31,12 +30,10 @@ function useSignOut() {
   }
 }
 
-export function PanelSidebar({ isAdmin, userName, storeUrl, subscriptionExpired, hasCustomDomain }: { isAdmin: boolean; userName: string; storeUrl: string; subscriptionExpired: boolean; hasCustomDomain: boolean }) {
+export function PanelSidebar({ isAdmin, userName, storeUrl, subscriptionExpired }: { isAdmin: boolean; userName: string; storeUrl: string; subscriptionExpired: boolean }) {
   const isActive = useActive()
   const signOut = useSignOut()
-  const visibleItems = subscriptionExpired
-    ? items.filter((item) => item.href === '/painel/plano')
-    : items.filter((item) => item.href !== '/painel/dominio' || hasCustomDomain)
+  const visibleItems = subscriptionExpired ? items.filter((item) => item.href === '/painel/plano') : items
 
   return (
     <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col justify-between border-r border-border p-5 md:flex">
@@ -90,11 +87,9 @@ export function PanelSidebar({ isAdmin, userName, storeUrl, subscriptionExpired,
   )
 }
 
-export function PanelMobileNav({ subscriptionExpired = false, hasCustomDomain = false }: { subscriptionExpired?: boolean; hasCustomDomain?: boolean }) {
+export function PanelMobileNav({ subscriptionExpired = false }: { subscriptionExpired?: boolean }) {
   const isActive = useActive()
-  const visibleItems = subscriptionExpired
-    ? items.filter((item) => item.href === '/painel/plano')
-    : items.filter((item) => item.href !== '/painel/dominio' || hasCustomDomain)
+  const visibleItems = subscriptionExpired ? items.filter((item) => item.href === '/painel/plano') : items
 
   return (
     <nav

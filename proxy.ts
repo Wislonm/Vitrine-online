@@ -40,6 +40,12 @@ export async function proxy(request: NextRequest) {
     publicPath = publicPath.slice(slugPath.length)
   }
 
+  if (!storeDomain.canUseCustomDomain) {
+    const platformUrl = new URL(`/${storeDomain.slug}${publicPath === '/' ? '' : publicPath}`, 'https://minhavitrine.shop')
+    platformUrl.search = request.nextUrl.search
+    return NextResponse.redirect(platformUrl, 308)
+  }
+
   if (hostname !== storeDomain.domain || publicPath !== request.nextUrl.pathname) {
     const canonicalUrl = request.nextUrl.clone()
     canonicalUrl.hostname = storeDomain.domain

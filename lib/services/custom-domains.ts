@@ -18,6 +18,8 @@ export async function resolveCustomDomainHost(hostname: string) {
   const [row] = await db
     .select({
       domain: storeDomains.domain,
+      domainEnabled: storeDomains.enabled,
+      domainStatus: storeDomains.status,
       slug: stores.slug,
       storeStatus: stores.status,
       ownerStatus: user.status,
@@ -31,13 +33,21 @@ export async function resolveCustomDomainHost(hostname: string) {
     .innerJoin(user, eq(stores.ownerUserId, user.id))
     .innerJoin(subscriptions, eq(subscriptions.storeId, stores.id))
     .innerJoin(plans, eq(subscriptions.planId, plans.id))
-    .where(and(eq(storeDomains.domain, domain), eq(storeDomains.status, 'active')))
+    .where(eq(storeDomains.domain, domain))
     .limit(1)
 
   if (!row || row.storeStatus !== 'active' || row.ownerStatus === 'blocked') return null
-  if (!row.planIsActive || !row.planFeatures?.custom_domain) return null
-  if (EXPIRED_SUBSCRIPTION_STATUSES.has(row.subscriptionStatus)) return null
-  if (row.subscriptionExpiresAt && row.subscriptionExpiresAt.getTime() <= Date.now()) return null
+  const subscriptionExpired = Boolean(
+    EXPIRED_SUBSCRIPTION_STATUSES.has(row.subscriptionStatus) ||
+    (row.subscriptionExpiresAt && row.subscriptionExpiresAt.getTime() <= Date.now()),
+  )
+  const canUseCustomDomain = Boolean(
+    row.domainStatus === 'active' &&
+    row.domainEnabled &&
+    row.planIsActive &&
+    row.planFeatures?.custom_domain &&
+    !subscriptionExpired,
+  )
 
-  return { domain: row.domain, slug: row.slug }
+  return { domain: row.domain, slug: row.slug, canUseCustomDomain }
 }
