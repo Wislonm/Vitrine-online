@@ -7,6 +7,7 @@ export type WhatsappOrderItem = {
   quantity: number
   unitPrice: number
   subtotal: number
+  priceOnRequest: boolean
   variations?: { name: string; option: string }[]
 }
 
@@ -34,11 +35,23 @@ export function buildOrderMessage(order: WhatsappOrderInput) {
     }
     lines.push(`Quantidade: ${item.quantity}`)
     item.variations?.forEach((variation) => lines.push(`${variation.name}: ${variation.option}`))
-    lines.push(`Valor unitário: ${formatBRL(item.unitPrice)}`)
-    lines.push(`Subtotal: ${formatBRL(item.subtotal)}`)
+    if (item.priceOnRequest) {
+      lines.push('Valor unitário: Sob consulta')
+      lines.push('Subtotal: Sob consulta')
+    } else {
+      lines.push(`Valor unitário: ${formatBRL(item.unitPrice)}`)
+      lines.push(`Subtotal: ${formatBRL(item.subtotal)}`)
+    }
     lines.push('')
   })
-  lines.push(`TOTAL: ${formatBRL(order.total)}`)
+  const hasPriceOnRequest = order.items.some((item) => item.priceOnRequest)
+  if (hasPriceOnRequest) {
+    const partialTotal = order.items.reduce((sum, item) => sum + (item.priceOnRequest ? 0 : item.subtotal), 0)
+    if (partialTotal > 0) lines.push(`TOTAL PARCIAL: ${formatBRL(partialTotal)}`)
+    lines.push('TOTAL: Sob consulta')
+  } else {
+    lines.push(`TOTAL: ${formatBRL(order.total)}`)
+  }
   if (order.notes) {
     lines.push('')
     lines.push(`Observações: ${order.notes}`)

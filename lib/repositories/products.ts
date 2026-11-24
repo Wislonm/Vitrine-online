@@ -120,7 +120,7 @@ export async function listPublicCategories(storeId: string) {
 export async function findPublicProductsByIds(storeId: string, ids: string[]) {
   if (ids.length === 0) return []
   return db
-    .select({ id: products.id, name: products.name, referenceCode: products.referenceCode, sku: products.sku, price: products.price, offerPrice: products.offerPrice })
+    .select({ id: products.id, name: products.name, referenceCode: products.referenceCode, sku: products.sku, price: products.price, offerPrice: products.offerPrice, priceOnRequest: products.priceOnRequest })
     .from(products)
     .where(
       and(
