@@ -17,7 +17,7 @@ export function Hero() {
             className="rise-in text-5xl leading-[1.02] font-semibold sm:text-6xl lg:text-7xl"
             style={{ animationDelay: '80ms' }}
           >
-            Sua vitrine pronta. Os pedidos chegam no seu WhatsApp.
+            Cria sua vitrine online Grátis.
           </h1>
 
           <p
