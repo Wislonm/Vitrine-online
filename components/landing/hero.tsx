@@ -20,7 +20,7 @@ export function Hero({ trialDays }: { trialDays: number }) {
             className="rise-in text-5xl leading-[1.02] font-semibold sm:text-6xl lg:text-7xl"
             style={{ animationDelay: '80ms' }}
           >
-            Crie sua vitrine online Grátis.
+            Cria sua vitrine online Grátis.
           </h1>
 
           <p
