@@ -2,22 +2,25 @@ import Link from 'next/link'
 import { ArrowRight, MessageCircle } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
 import { StorefrontPhone } from '@/components/landing/storefront-phone'
+import { formatTrialDays } from '@/lib/format'
 
-export function Hero() {
+export function Hero({ trialDays }: { trialDays: number }) {
+  const trialLabel = formatTrialDays(trialDays)
+
   return (
     <section className="relative overflow-hidden">
       <div className="mx-auto grid max-w-6xl items-center gap-14 px-5 pt-14 pb-20 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10 lg:pt-20 lg:pb-28">
         <div className="flex flex-col items-start gap-7">
           <span className="rise-in inline-flex items-center gap-2 rounded-full bg-muted px-4 py-2 text-xs font-medium">
             <span className="size-2 rounded-full bg-sage" aria-hidden="true" />
-            7 dias grátis, sem cartão
+            {trialLabel}, sem cartão
           </span>
 
           <h1
             className="rise-in text-5xl leading-[1.02] font-semibold sm:text-6xl lg:text-7xl"
             style={{ animationDelay: '80ms' }}
           >
-            Sua vitrine pronta. Os pedidos chegam no seu WhatsApp.
+            Cria sua vitrine online Grátis.
           </h1>
 
           <p
@@ -39,7 +42,7 @@ export function Hero() {
           </div>
 
           <p className="rise-in text-sm text-muted-foreground" style={{ animationDelay: '300ms' }}>
-            7 dias grátis com acesso completo ao painel. Cadastro em menos de 2 minutos.
+            {trialLabel} com acesso completo ao painel. Cadastro em menos de 2 minutos.
           </p>
         </div>
 
