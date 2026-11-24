@@ -6,6 +6,7 @@ import { formatTrialDays } from '@/lib/format'
 
 export function Hero({ trialDays }: { trialDays: number }) {
   const trialLabel = formatTrialDays(trialDays)
+
   return (
     <section className="relative overflow-hidden">
       <div className="mx-auto grid max-w-6xl items-center gap-14 px-5 pt-14 pb-20 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10 lg:pt-20 lg:pb-28">
