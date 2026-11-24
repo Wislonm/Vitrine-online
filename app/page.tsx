@@ -34,7 +34,9 @@ const websiteStructuredData = {
 }
 
 export default async function LandingPage() {
-  const plans = await listPlans({ onlyActive: true })
+  const allPlans = await listPlans()
+  const trialDays = allPlans.find((plan) => plan.slug === 'trial-default')?.trialDays || 7
+  const plans = allPlans.filter((plan) => plan.isActive && plan.slug !== 'trial-default')
 
   return (
     <>
@@ -44,11 +46,11 @@ export default async function LandingPage() {
       />
       <SiteHeader />
       <main>
-        <Hero />
+        <Hero trialDays={trialDays} />
         <Benefits />
         <HowItWorks />
-        <Plans plans={plans} />
-        <Faq />
+        <Plans plans={plans} trialDays={trialDays} />
+        <Faq trialDays={trialDays} />
         <FinalCta />
       </main>
       <SiteFooter />

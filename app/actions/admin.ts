@@ -270,6 +270,7 @@ export async function updatePlanAction(raw: unknown): Promise<ActionResult> {
     })
     revalidatePath('/admin', 'layout')
     revalidatePath('/painel/plano')
+    revalidatePath('/')
     return { ok: true, message: 'Plano atualizado' }
   } catch (error) {
     if (error instanceof UnauthorizedError) return { ok: false, error: FORBIDDEN }

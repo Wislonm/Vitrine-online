@@ -1,9 +1,11 @@
 import { Plus } from 'lucide-react'
 
-const questions = [
+function getQuestions(trialDays: number) {
+  const trialPeriod = `${trialDays} ${trialDays === 1 ? 'dia' : 'dias'}`
+  return [
   {
     q: 'Preciso pagar para criar minha vitrine?',
-    a: 'Não. Cada nova conta recebe 7 dias grátis com acesso completo ao painel e aos recursos do plano Pro, sem cartão e sem cobrança durante o teste.',
+    a: `Não. Cada nova conta recebe ${trialPeriod} grátis com acesso completo ao painel e aos recursos do plano Pro, sem cartão e sem cobrança durante o teste.`,
   },
   {
     q: 'O cliente paga pelo site?',
@@ -18,16 +20,18 @@ const questions = [
     a: 'Sim. No painel você edita o nome exibido, a descrição, as imagens da vitrine e escolhe entre 12 paletas de cores para combinar com sua marca.',
   },
   {
-    q: 'O que acontece após os 7 dias grátis?',
-    a: 'O painel fica bloqueado até a contratação do plano Pro. Seus dados e sua vitrine permanecem salvos. No checkout você escolhe pagamento único por cartão ou Pix, ou renovação recorrente no cartão.',
+    q: `O que acontece após ${trialPeriod} grátis?`,
+    a: `Ao fim do período de teste de ${trialPeriod}, o painel fica bloqueado até a contratação do plano Pro. Seus dados e sua vitrine permanecem salvos. No checkout você escolhe pagamento único por cartão ou Pix, ou renovação recorrente no cartão.`,
   },
   {
     q: 'Posso usar meu próprio domínio?',
     a: 'Ainda não. O domínio personalizado está nos planos futuros. Por enquanto, sua vitrine fica em um endereço amigável da plataforma.',
   },
-]
+  ]
+}
 
-export function Faq() {
+export function Faq({ trialDays }: { trialDays: number }) {
+  const questions = getQuestions(trialDays)
   return (
     <section id="faq" className="scroll-mt-20 py-20 lg:py-28">
       <div className="mx-auto grid max-w-6xl gap-10 px-5 lg:grid-cols-[0.8fr_1.2fr]">

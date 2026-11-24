@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { Check, Minus } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
 import { getPlanPeriodPrices, type Plan } from '@/lib/repositories/plans'
-import { formatBRL } from '@/lib/format'
+import { formatBRL, formatTrialDays } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
 const featureRows: { key: keyof NonNullable<Plan['features']>; label: string }[] = [
@@ -27,7 +27,7 @@ const billingPeriodLabels = {
   yearly: { label: 'Anual', suffix: '/ano' },
 } as const
 
-export function Plans({ plans }: { plans: Plan[] }) {
+export function Plans({ plans, trialDays }: { plans: Plan[]; trialDays: number }) {
   return (
     <section id="planos" className="scroll-mt-20 bg-muted/60 py-20 lg:py-28">
       <div className="mx-auto max-w-6xl px-5">
@@ -36,15 +36,15 @@ export function Plans({ plans }: { plans: Plan[] }) {
           <h2 className="text-4xl leading-tight font-semibold sm:text-5xl">Comece grátis, cresça quando precisar.</h2>
         </div>
 
-        <div className="grid max-w-2xl gap-4">
-          {plans.slice(0, 1).map((plan) => (
+        <div className="grid max-w-5xl gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {plans.map((plan) => (
             <article key={plan.id} className="flex flex-col gap-6 rounded-[2rem] bg-card p-6 sm:p-8">
               <header className="flex flex-wrap items-start justify-between gap-3">
                 <div className="flex flex-col gap-2">
                   <h3 className="text-2xl font-semibold">{plan.name}</h3>
                   <p className="text-sm text-muted-foreground">{plan.description}</p>
                 </div>
-                <span className="rounded-full bg-muted px-3 py-1.5 text-xs font-semibold">7 dias grátis</span>
+                <span className="rounded-full bg-muted px-3 py-1.5 text-xs font-semibold">{formatTrialDays(trialDays)}</span>
               </header>
 
               <p className="font-display text-5xl font-semibold">
@@ -83,7 +83,7 @@ export function Plans({ plans }: { plans: Plan[] }) {
               </ul>
 
               <div className="mt-auto flex flex-col gap-3">
-                <Link href="/cadastro" className={cn(buttonVariants({ size: 'lg' }))}>Começar 7 dias grátis</Link>
+                <Link href="/cadastro" className={cn(buttonVariants({ size: 'lg' }))}>Começar {formatTrialDays(trialDays)}</Link>
                 <p className="text-center text-xs text-muted-foreground">Após o teste, escolha a periodicidade e pague por cartão ou Pix. A renovação automática é opcional.</p>
               </div>
             </article>
