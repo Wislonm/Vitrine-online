@@ -89,6 +89,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
       quantity: cartLine.quantity,
       unitCents,
       subtotalCents: unitCents * cartLine.quantity,
+      priceOnRequest: product.priceOnRequest,
       variations: canonicalVariations,
     }
   })
@@ -122,6 +123,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
       quantity: line.quantity,
       unitPrice: line.unitCents / 100,
       subtotal: line.subtotalCents / 100,
+      priceOnRequest: line.priceOnRequest,
       variations: line.variations.map((variation) => ({ name: variation.variationName, option: variation.optionLabel })),
     })), 
   })
