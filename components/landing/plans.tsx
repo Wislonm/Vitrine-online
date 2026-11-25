@@ -16,11 +16,12 @@ const featureRows: { key: keyof NonNullable<Plan['features']>; label: string }[]
 ]
 
 const includedFeatures = [
-  'Cadastro de produtos com oferta, REF e SKU',
   'Até 3 opções por produto e galeria de imagens',
   'Controle de estoque e disponibilidade',
   'Busca, paginação e organização do catálogo',
 ]
+
+const proOnlyFeatures = ['Cadastro de produtos com oferta, REF e SKU']
 
 const billingPeriodLabels = {
   monthly: { label: 'Mensal', suffix: '/mês' },
@@ -84,6 +85,12 @@ function PlanCard({ plan, trialDays }: { plan: Plan; trialDays: number }) {
           )
         })}
         {includedFeatures.map((feature) => (
+          <li key={feature} className="flex items-start gap-3">
+            <Check className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+            <span>{feature}</span>
+          </li>
+        ))}
+        {plan.slug === 'business' && proOnlyFeatures.map((feature) => (
           <li key={feature} className="flex items-start gap-3">
             <Check className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
             <span>{feature}</span>
