@@ -24,6 +24,7 @@ import type { FieldErrors } from '@/lib/validators'
 type ProductFormProps = {
   productId?: string
   categories: { id: string; name: string }[]
+  canUseProductIdentifiers: boolean
   initial?: {
     name: string
     referenceCode: string | null
@@ -43,7 +44,7 @@ type ProductFormProps = {
   }
 }
 
-export function ProductForm({ productId, categories, initial }: ProductFormProps) {
+export function ProductForm({ productId, categories, initial, canUseProductIdentifiers }: ProductFormProps) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [errors, setErrors] = useState<FieldErrors>({})
@@ -172,14 +173,21 @@ export function ProductForm({ productId, categories, initial }: ProductFormProps
           <Input id="name" name="name" defaultValue={initial?.name} placeholder="Ex.: Moletom Midnight" aria-invalid={!!errors.name} />
         </Field>
 
-        <div className="grid grid-cols-2 gap-5">
-          <Field label="REF" htmlFor="referenceCode">
-            <Input id="referenceCode" name="referenceCode" defaultValue={initial?.referenceCode ?? ''} placeholder="Ex.: REF-001" />
-          </Field>
-          <Field label="SKU" htmlFor="sku">
-            <Input id="sku" name="sku" defaultValue={initial?.sku ?? ''} placeholder="Ex.: CAM-PRE-M" />
-          </Field>
-        </div>
+        {canUseProductIdentifiers ? (
+          <div className="grid grid-cols-2 gap-5">
+            <Field label="REF" htmlFor="referenceCode">
+              <Input id="referenceCode" name="referenceCode" defaultValue={initial?.referenceCode ?? ''} placeholder="Ex.: REF-001" />
+            </Field>
+            <Field label="SKU" htmlFor="sku">
+              <Input id="sku" name="sku" defaultValue={initial?.sku ?? ''} placeholder="Ex.: CAM-PRE-M" />
+            </Field>
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-muted p-4">
+            <p className="text-sm text-muted-foreground">REF e SKU estão disponíveis no plano Pro.</p>
+            <Link href="/painel/plano" className="text-sm font-medium underline underline-offset-4">Ver planos</Link>
+          </div>
+        )}
 
         <Field label="Descrição" htmlFor="description" error={errors.description?.[0]}>
           <Textarea

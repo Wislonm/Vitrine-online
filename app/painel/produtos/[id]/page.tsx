@@ -5,7 +5,9 @@ import { PageHeader } from '@/components/panel/page-header'
 import { ProductForm } from '@/components/panel/product-form'
 import { listCategoryOptions } from '@/lib/repositories/categories'
 import { getProduct } from '@/lib/repositories/products'
+import { isProPlan } from '@/lib/repositories/plans'
 import { listVariations } from '@/lib/repositories/variations'
+import { getPlanUsage } from '@/lib/services/plan-usage'
 import { requireSellerContext } from '@/lib/session'
 
 export const metadata: Metadata = { title: 'Editar produto' }
@@ -15,7 +17,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
   if (!z.uuid().safeParse(id).success) notFound()
 
   const { store } = await requireSellerContext()
-  const [product, categories, variations] = await Promise.all([getProduct(store.id, id), listCategoryOptions(store.id), listVariations(id)])
+  const [product, categories, variations, usage] = await Promise.all([getProduct(store.id, id), listCategoryOptions(store.id), listVariations(id), getPlanUsage(store.id)])
   if (!product) notFound()
 
   return (
@@ -24,6 +26,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
       <ProductForm
         productId={product.id}
         categories={categories}
+        canUseProductIdentifiers={isProPlan(usage.plan)}
         initial={{
           name: product.name,
           referenceCode: product.referenceCode,

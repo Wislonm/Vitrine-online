@@ -36,7 +36,7 @@ function statusOf(product: ProductRowData) {
   return { label: 'Na vitrine', tone: 'bg-sage text-sage-foreground' }
 }
 
-export function ProductRow({ product }: { product: ProductRowData }) {
+export function ProductRow({ product, canUseProductIdentifiers }: { product: ProductRowData; canUseProductIdentifiers: boolean }) {
   const [pending, startTransition] = useTransition()
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [dragging, setDragging] = useState(false)
@@ -98,7 +98,7 @@ export function ProductRow({ product }: { product: ProductRowData }) {
         <Link href={`/painel/produtos/${product.id}`} className="block w-fit max-w-full truncate font-medium hover:underline hover:underline-offset-4">
           {product.name}
         </Link>
-        {(product.referenceCode || product.sku) && <p className="text-xs text-muted-foreground">{product.referenceCode && <>REF: {product.referenceCode}</>}{product.referenceCode && product.sku && <span className="px-1.5">·</span>}{product.sku && <>SKU: {product.sku}</>}</p>}
+        {canUseProductIdentifiers && (product.referenceCode || product.sku) && <p className="text-xs text-muted-foreground">{product.referenceCode && <>REF: {product.referenceCode}</>}{product.referenceCode && product.sku && <span className="px-1.5">·</span>}{product.sku && <>SKU: {product.sku}</>}</p>}
         <p className="text-sm text-muted-foreground">
           {formatBRL(product.price)}
           {product.categoryName ? ` · ${product.categoryName}` : ''}
