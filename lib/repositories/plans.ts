@@ -6,6 +6,10 @@ import { plans, stores, subscriptions } from '@/lib/db/schema'
 export type Plan = typeof plans.$inferSelect
 export type CheckoutBillingPeriod = 'monthly' | 'semiannual' | 'yearly'
 
+export function isProPlan(plan: Pick<Plan, 'slug'> | null | undefined) {
+  return plan?.slug === 'business'
+}
+
 export function getPlanPrice(plan: Plan, period: CheckoutBillingPeriod) {
   const value = period === 'monthly'
     ? plan.monthlyPrice ?? plan.price

@@ -3,7 +3,8 @@
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { getSellerContextOrThrow, UnauthorizedError } from '@/lib/session'
-import { deleteProduct, setProductFlags } from '@/lib/repositories/products'
+import { deleteProduct, getProduct, setProductFlags } from '@/lib/repositories/products'
+import { getPlanForStore, isProPlan } from '@/lib/repositories/plans'
 import { listProductsForOrdering, saveProductOrder } from '@/lib/repositories/products-order'
 import { createProduct, editProduct } from '@/lib/services/product-service'
 import { productSchema, zodFieldErrors, type ActionResult } from '@/lib/validators'
@@ -21,7 +22,11 @@ function refresh(slug: string) {
 export async function saveProductAction(productId: string | null, raw: unknown): Promise<ActionResult<{ id: string }>> {
   try {
     const { store } = await getSellerContextOrThrow()
+    if (productId !== null && !z.uuid().safeParse(productId).success) return { ok: false, error: 'Produto não encontrado' }
+
     const rawRecord = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {}
+    const canUseProductIdentifiers = isProPlan((await getPlanForStore(store.id))?.plan)
+    const existingProduct = !canUseProductIdentifiers && productId ? await getProduct(store.id, productId) : null
     const rawVariations = Array.isArray(rawRecord.variations) ? rawRecord.variations : []
     const variations = rawVariations
       .filter((variation): variation is Record<string, unknown> => Boolean(variation && typeof variation === 'object'))
@@ -36,9 +41,13 @@ export async function saveProductAction(productId: string | null, raw: unknown):
       .filter((variation) => variation.name && variation.options.length > 0)
       .slice(0, 3)
       .map((variation, position) => ({ ...variation, position }))
-    const parsed = productSchema.safeParse({ ...rawRecord, variations })
+    const productData: Record<string, unknown> = { ...rawRecord, variations }
+    if (!canUseProductIdentifiers) {
+      productData.referenceCode = existingProduct?.referenceCode ?? ''
+      productData.sku = existingProduct?.sku ?? ''
+    }
+    const parsed = productSchema.safeParse(productData)
     if (!parsed.success) return { ok: false, error: 'Revise os campos destacados', fieldErrors: zodFieldErrors(parsed.error) }
-    if (productId !== null && !z.uuid().safeParse(productId).success) return { ok: false, error: 'Produto não encontrado' }
     const result = productId ? await editProduct(store.id, productId, parsed.data) : await createProduct(store.id, parsed.data)
     if (!result.ok) return { ok: false, error: result.error, fieldErrors: result.fieldErrors }
     refresh(store.slug)

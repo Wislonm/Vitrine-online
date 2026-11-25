@@ -5,6 +5,7 @@ import { CartProvider } from '@/components/storefront/cart-context'
 import { ProductDetail } from '@/components/storefront/product-detail'
 import { StoreFooter } from '@/components/storefront/store-footer'
 import { getProduct } from '@/lib/repositories/products'
+import { getPlanForStore, isProPlan } from '@/lib/repositories/plans'
 import { listVariations } from '@/lib/repositories/variations'
 import { getStoreSettings } from '@/lib/repositories/stores'
 import { getPublicStore } from '@/lib/services/public-store'
@@ -42,10 +43,11 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   const store = await getPublicStore(slug.toLowerCase())
   if (!store) notFound()
 
-  const [product, variations, settings] = await Promise.all([
+  const [product, variations, settings, planRow] = await Promise.all([
     getProduct(store.id, productId),
     listVariations(productId),
     getStoreSettings(store.id),
+    getPlanForStore(store.id),
   ])
   if (!product || !product.isActive || !product.isPublished) notFound()
 
@@ -59,6 +61,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
         slug={store.slug}
         storeName={displayName}
         canReceiveOrders={Boolean(store.whatsapp)}
+        canUseProductIdentifiers={isProPlan(planRow?.plan)}
         themeStyle={themeStyle}
         product={{
           id: product.id,
