@@ -94,6 +94,7 @@ export function formatDate(value: Date | string) {
 }
 
 export function formatTrialDays(days: number) {
+  if (days <= 0) return 'Sempre grátis'
   return `${days} ${days === 1 ? 'dia' : 'dias'} grátis`
 }
 

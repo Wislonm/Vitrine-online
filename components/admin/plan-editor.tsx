@@ -33,17 +33,23 @@ export function PlanEditor({ plan, featureLabels }: PlanEditorProps) {
   const [pending, startTransition] = useTransition()
   const [errors, setErrors] = useState<FieldErrors>({})
   const [isActive, setIsActive] = useState(plan.isActive)
+  const [isPermanentFree, setIsPermanentFree] = useState(plan.slug === 'trial-default' && plan.trialDays === 0)
+  const [trialDaysInput, setTrialDaysInput] = useState(String(plan.trialDays > 0 ? plan.trialDays : 7))
 
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
     const isTrial = plan.slug === 'trial-default'
+    const trialDays = isTrial && !isPermanentFree ? Number(trialDaysInput) : 0
     const monthlyPrice = isTrial ? 0 : parsePriceInput(String(form.get('monthlyPrice') ?? ''))
     const semiannualRaw = String(form.get('semiannualPrice') ?? '').trim()
     const annualRaw = String(form.get('annualPrice') ?? '').trim()
     const semiannualPrice = isTrial || !semiannualRaw ? null : parsePriceInput(semiannualRaw)
     const annualPrice = isTrial || !annualRaw ? null : parsePriceInput(annualRaw)
     const priceErrors: FieldErrors = {}
+    if (isTrial && !isPermanentFree && (!Number.isInteger(trialDays) || trialDays < 1 || trialDays > 365)) {
+      priceErrors.trialDays = ['Informe de 1 a 365 dias ou escolha o acesso permanente.']
+    }
     if (monthlyPrice === null) priceErrors.monthlyPrice = ['Informe um valor mensal válido em reais.']
     if (semiannualRaw && semiannualPrice === null) priceErrors.semiannualPrice = ['Informe um valor semestral válido em reais.']
     if (annualRaw && annualPrice === null) priceErrors.annualPrice = ['Informe um valor anual válido em reais.']
@@ -58,7 +64,7 @@ export function PlanEditor({ plan, featureLabels }: PlanEditorProps) {
         name: String(form.get('name') ?? ''),
         description: String(form.get('description') ?? ''),
         productLimit: Number(form.get('productLimit')),
-        trialDays: isTrial ? Number(form.get('trialDays')) : 0,
+        trialDays,
         monthlyPrice,
         semiannualPrice,
         annualPrice,
@@ -88,9 +94,34 @@ export function PlanEditor({ plan, featureLabels }: PlanEditorProps) {
         <Input id={`description-${plan.id}`} name="description" defaultValue={plan.description ?? ''} className="bg-background" />
       </Field>
       {plan.slug === 'trial-default' ? (
-        <Field label="Período de degustação (dias)" htmlFor={`trial-days-${plan.id}`} required error={errors.trialDays?.[0]}>
-          <Input id={`trial-days-${plan.id}`} name="trialDays" type="number" min={1} max={365} defaultValue={plan.trialDays} className="bg-background" aria-invalid={!!errors.trialDays} />
-        </Field>
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between gap-4 rounded-2xl bg-background p-4">
+            <div className="flex flex-col gap-1">
+              <label htmlFor={`permanent-free-${plan.id}`} className="text-sm font-medium">Gratuito permanente</label>
+              <p className="text-xs leading-relaxed text-muted-foreground">Sem data de expiração para novas contas.</p>
+            </div>
+            <Switch id={`permanent-free-${plan.id}`} checked={isPermanentFree} onCheckedChange={setIsPermanentFree} aria-label="Gratuito permanente" />
+          </div>
+          {isPermanentFree ? (
+            <p className="rounded-2xl bg-background p-4 text-sm leading-relaxed text-muted-foreground">
+              Novas contas permanecem no plano gratuito sem expiração. Contas existentes mantêm a data já registrada.
+            </p>
+          ) : (
+            <Field label="Período de degustação (dias)" htmlFor={`trial-days-${plan.id}`} required error={errors.trialDays?.[0]}>
+              <Input
+                id={`trial-days-${plan.id}`}
+                name="trialDays"
+                type="number"
+                min={1}
+                max={365}
+                value={trialDaysInput}
+                onChange={(event) => setTrialDaysInput(event.target.value)}
+                className="bg-background"
+                aria-invalid={!!errors.trialDays}
+              />
+            </Field>
+          )}
+        </div>
       ) : (
         <>
           <div className="grid gap-4 sm:grid-cols-3">

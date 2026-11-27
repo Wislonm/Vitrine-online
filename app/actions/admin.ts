@@ -240,9 +240,6 @@ export async function updatePlanAction(raw: unknown): Promise<ActionResult> {
     const { planId, ...parsedData } = parsed.data
     const existingPlan = (await listPlans()).find((plan) => plan.id === planId)
     if (!existingPlan) return { ok: false, error: 'Plano não encontrado' }
-    if (existingPlan.slug === 'trial-default' && parsedData.trialDays < 1) {
-      return { ok: false, error: 'Informe ao menos 1 dia de degustação', fieldErrors: { trialDays: ['Informe ao menos 1 dia'] } }
-    }
     if (existingPlan.slug !== 'trial-default' && parsedData.monthlyPrice <= 0) {
       return { ok: false, error: 'Informe um preço mensal maior que zero para o plano Pro.', fieldErrors: { monthlyPrice: ['Informe um preço mensal maior que zero'] } }
     }
@@ -271,6 +268,8 @@ export async function updatePlanAction(raw: unknown): Promise<ActionResult> {
     revalidatePath('/admin', 'layout')
     revalidatePath('/painel/plano')
     revalidatePath('/')
+    revalidatePath('/cadastro')
+    revalidatePath('/termos')
     return { ok: true, message: 'Plano atualizado' }
   } catch (error) {
     if (error instanceof UnauthorizedError) return { ok: false, error: FORBIDDEN }
