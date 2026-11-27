@@ -214,21 +214,13 @@ export function PlanEditor({ plan }: PlanEditorProps) {
         </div>
 
         {featureItems.map((feature, index) => (
-          <div key={feature.id} className="grid min-w-0 gap-3 rounded-2xl bg-muted p-4 sm:grid-cols-2">
-            <div className="sm:col-span-2">
-              <Field label="Recurso" htmlFor={`feature-label-${plan.id}-${feature.id}`}>
-                <Input
-                  id={`feature-label-${plan.id}-${feature.id}`}
-                  value={feature.label}
-                  onChange={(event) => updateFeatureLabel(feature.id, event.target.value)}
-                  placeholder="Nome do recurso"
-                  className="bg-background"
-                  maxLength={120}
-                  aria-invalid={Boolean(errors.displayFeatures?.[0] && !feature.label.trim())}
-                />
-              </Field>
-            </div>
-            <Field label="Ícone" htmlFor={`feature-icon-${plan.id}-${feature.id}`}>
+          <div
+            key={feature.id}
+            role="group"
+            aria-label={`Recurso ${feature.label || index + 1}`}
+            className="flex min-w-0 flex-col gap-3 rounded-2xl bg-muted p-3 sm:flex-row sm:items-center sm:gap-4"
+          >
+            <div className="flex min-w-0 flex-1 items-center gap-2">
               <Popover
                 open={openFeatureId === feature.id}
                 onOpenChange={(open) => setOpenFeatureId(open ? feature.id : null)}
@@ -273,29 +265,37 @@ export function PlanEditor({ plan }: PlanEditorProps) {
                   </div>
                 </PopoverContent>
               </Popover>
-            </Field>
-            <Field label="Disponibilidade" htmlFor={`feature-enabled-${plan.id}-${feature.id}`}>
-              <div className="flex items-center justify-between gap-3 rounded-2xl bg-background px-4 py-3">
-                <span className="text-sm text-muted-foreground">{feature.enabled ? 'Incluído' : 'Não incluído'}</span>
-                <div className="flex items-center gap-2">
-                  <Switch
-                    id={`feature-enabled-${plan.id}-${feature.id}`}
-                    checked={feature.enabled}
-                    onCheckedChange={(enabled) => updateFeatureItem(feature.id, { enabled })}
-                    aria-label={`Disponibilidade do recurso ${feature.label || index + 1}`}
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label={`Remover recurso ${feature.label || index + 1}`}
-                    onClick={() => removeFeatureItem(feature.id)}
-                  >
-                    <Trash2 aria-hidden="true" />
-                  </Button>
-                </div>
-              </div>
-            </Field>
+              <Input
+                id={`feature-label-${plan.id}-${feature.id}`}
+                value={feature.label}
+                onChange={(event) => updateFeatureLabel(feature.id, event.target.value)}
+                placeholder="Nome do recurso"
+                className="min-w-0 flex-1 bg-background"
+                maxLength={120}
+                aria-label={`Nome do recurso ${feature.label || index + 1}`}
+                aria-invalid={Boolean(errors.displayFeatures?.[0] && !feature.label.trim())}
+              />
+            </div>
+            <div className="flex items-center justify-end gap-3 sm:shrink-0">
+              <span id={`feature-availability-label-${plan.id}-${feature.id}`} className="whitespace-nowrap text-sm font-medium">
+                Disponibilidade
+              </span>
+              <Switch
+                id={`feature-enabled-${plan.id}-${feature.id}`}
+                checked={feature.enabled}
+                onCheckedChange={(enabled) => updateFeatureItem(feature.id, { enabled })}
+                aria-labelledby={`feature-availability-label-${plan.id}-${feature.id}`}
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label={`Remover recurso ${feature.label || index + 1}`}
+                onClick={() => removeFeatureItem(feature.id)}
+              >
+                <Trash2 aria-hidden="true" />
+              </Button>
+            </div>
           </div>
         ))}
         {errors.displayFeatures?.[0] && <p role="alert" className="text-sm text-destructive">{errors.displayFeatures[0]}</p>}
