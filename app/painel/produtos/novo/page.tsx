@@ -4,7 +4,7 @@ import { PageHeader } from '@/components/panel/page-header'
 import { ProductForm } from '@/components/panel/product-form'
 import { buttonVariants } from '@/components/ui/button'
 import { listCategoryOptions } from '@/lib/repositories/categories'
-import { isProPlan } from '@/lib/repositories/plans'
+import { hasProductIdentifiersFeature } from '@/lib/repositories/plans'
 import { getPlanUsage } from '@/lib/services/plan-usage'
 import { requireSellerContext } from '@/lib/session'
 
@@ -33,7 +33,7 @@ export default async function NewProductPage() {
           </div>
         </div>
       ) : (
-        <ProductForm categories={categories} canUseProductIdentifiers={isProPlan(usage.plan)} />
+        <ProductForm categories={categories} canUseProductIdentifiers={hasProductIdentifiersFeature(usage.plan)} />
       )}
     </>
   )

@@ -1,27 +1,12 @@
 import Link from 'next/link'
-import { Check, Minus } from 'lucide-react'
+import { Minus } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
+import { PlanFeatureIcon } from '@/components/plan-feature-icon'
+import { getPlanDisplayFeatures } from '@/lib/plan-features'
 import { getPlanPeriodPrices, type Plan } from '@/lib/repositories/plans'
+import type { PlanDisplayFeature } from '@/lib/db/schema'
 import { formatBRL, formatTrialDays } from '@/lib/format'
 import { cn } from '@/lib/utils'
-
-const featureRows: { key: keyof NonNullable<Plan['features']>; label: string }[] = [
-  { key: 'public_storefront', label: 'Vitrine pública com link próprio' },
-  { key: 'seller_panel', label: 'Painel de gerenciamento da loja' },
-  { key: 'categories', label: 'Categorias e filtros de produtos' },
-  { key: 'side_cart', label: 'Carrinho e lista de desejos' },
-  { key: 'whatsapp_orders', label: 'Pedidos enviados pelo WhatsApp' },
-  { key: 'hero_customization', label: 'Personalização da vitrine e paleta de cores' },
-  { key: 'custom_domain', label: 'Domínio personalizado' },
-]
-
-const includedFeatures = [
-  'Até 3 opções por produto e galeria de imagens',
-  'Controle de estoque e disponibilidade',
-  'Busca, paginação e organização do catálogo',
-]
-
-const proOnlyFeatures = ['Cadastro de produtos com oferta, REF e SKU']
 
 const billingPeriodLabels = {
   monthly: { label: 'Mensal', suffix: '/mês' },
@@ -29,9 +14,10 @@ const billingPeriodLabels = {
   yearly: { label: 'Anual', suffix: '/ano' },
 } as const
 
-function PlanCard({ plan, trialDays }: { plan: Plan; trialDays: number }) {
+function PlanCard({ plan, trialDays, comparisonFeatures }: { plan: Plan; trialDays: number; comparisonFeatures: PlanDisplayFeature[] }) {
   const isTrial = plan.slug === 'trial-default'
   const periodPrices = getPlanPeriodPrices(plan)
+  const planFeatures = new Map(getPlanDisplayFeatures(plan.slug, plan.features).map((feature) => [feature.key, feature]))
   const trialPeriod = trialDays > 0 ? `${trialDays} ${trialDays === 1 ? 'dia' : 'dias'}` : null
 
   return (
@@ -41,7 +27,7 @@ function PlanCard({ plan, trialDays }: { plan: Plan; trialDays: number }) {
           <h3 className="text-2xl font-semibold">{plan.name}</h3>
           <p className="text-sm text-muted-foreground">{plan.description}</p>
         </div>
-        {isTrial && <span className="rounded-full bg-muted px-3 py-1.5 text-xs font-semibold">{formatTrialDays(plan.trialDays)}</span>}
+        {isTrial && <span className="rounded-full bg-muted px-3 py-1.5 text-xs font-semibold">{plan.trialDays === 0 ? 'Grátis' : formatTrialDays(plan.trialDays)}</span>}
       </header>
 
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -75,27 +61,18 @@ function PlanCard({ plan, trialDays }: { plan: Plan; trialDays: number }) {
       ) : null}
 
       <ul className="grid gap-3 text-sm sm:grid-cols-2">
-        {featureRows.map((row) => {
-          const included = Boolean(plan.features?.[row.key])
+        {comparisonFeatures.map((feature) => {
+          const planFeature = planFeatures.get(feature.key)
+          const included = Boolean(planFeature?.enabled)
           return (
-            <li key={row.key} className={cn('flex items-start gap-3', !included && 'text-muted-foreground')}>
-              {included ? <Check className="mt-0.5 size-4 shrink-0" aria-hidden="true" /> : <Minus className="mt-0.5 size-4 shrink-0" aria-hidden="true" />}
-              <span>{row.label}</span>
+            <li key={feature.key} className="flex items-start gap-3">
+              {included
+                ? <PlanFeatureIcon name={planFeature?.icon ?? feature.icon} className="mt-0.5 size-4 shrink-0" />
+                : <Minus className="mt-0.5 size-4 shrink-0" aria-hidden="true" />}
+              <span className={cn(!included && 'text-muted-foreground line-through')}>{planFeature?.label ?? feature.label}</span>
             </li>
           )
         })}
-        {includedFeatures.map((feature) => (
-          <li key={feature} className="flex items-start gap-3">
-            <Check className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-            <span>{feature}</span>
-          </li>
-        ))}
-        {plan.slug === 'business' && proOnlyFeatures.map((feature) => (
-          <li key={feature} className="flex items-start gap-3">
-            <Check className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-            <span>{feature}</span>
-          </li>
-        ))}
       </ul>
 
       <div className="mt-auto flex flex-col gap-3">
@@ -113,6 +90,15 @@ function PlanCard({ plan, trialDays }: { plan: Plan; trialDays: number }) {
 }
 
 export function Plans({ plans, trialDays }: { plans: Plan[]; trialDays: number }) {
+  const featureMap = new Map<string, PlanDisplayFeature>()
+  const featureSourcePlans = [...plans].sort((a, b) => Number(b.slug === 'business') - Number(a.slug === 'business'))
+  for (const plan of featureSourcePlans) {
+    for (const feature of getPlanDisplayFeatures(plan.slug, plan.features)) {
+      if (!featureMap.has(feature.key)) featureMap.set(feature.key, feature)
+    }
+  }
+  const comparisonFeatures = [...featureMap.values()]
+
   return (
     <section id="planos" className="scroll-mt-20 bg-muted/60 py-20 lg:py-28">
       <div className="mx-auto max-w-6xl px-5">
@@ -122,7 +108,7 @@ export function Plans({ plans, trialDays }: { plans: Plan[]; trialDays: number }
         </div>
 
         <div className="grid max-w-6xl gap-4 lg:grid-cols-2">
-          {plans.map((plan) => <PlanCard key={plan.id} plan={plan} trialDays={trialDays} />)}
+          {plans.map((plan) => <PlanCard key={plan.id} plan={plan} trialDays={trialDays} comparisonFeatures={comparisonFeatures} />)}
         </div>
       </div>
     </section>

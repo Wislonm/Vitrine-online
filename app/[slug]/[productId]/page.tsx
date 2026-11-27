@@ -5,7 +5,7 @@ import { CartProvider } from '@/components/storefront/cart-context'
 import { ProductDetail } from '@/components/storefront/product-detail'
 import { StoreFooter } from '@/components/storefront/store-footer'
 import { getProduct } from '@/lib/repositories/products'
-import { getPlanForStore, isProPlan } from '@/lib/repositories/plans'
+import { getPlanForStore, hasProductIdentifiersFeature } from '@/lib/repositories/plans'
 import { listVariations } from '@/lib/repositories/variations'
 import { getStoreSettings } from '@/lib/repositories/stores'
 import { getPublicStore } from '@/lib/services/public-store'
@@ -61,7 +61,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
         slug={store.slug}
         storeName={displayName}
         canReceiveOrders={Boolean(store.whatsapp)}
-        canUseProductIdentifiers={isProPlan(planRow?.plan)}
+        canUseProductIdentifiers={hasProductIdentifiersFeature(planRow?.plan)}
         themeStyle={themeStyle}
         product={{
           id: product.id,

@@ -5,7 +5,7 @@ import { PageHeader } from '@/components/panel/page-header'
 import { ProductForm } from '@/components/panel/product-form'
 import { listCategoryOptions } from '@/lib/repositories/categories'
 import { getProduct } from '@/lib/repositories/products'
-import { isProPlan } from '@/lib/repositories/plans'
+import { hasProductIdentifiersFeature } from '@/lib/repositories/plans'
 import { listVariations } from '@/lib/repositories/variations'
 import { getPlanUsage } from '@/lib/services/plan-usage'
 import { requireSellerContext } from '@/lib/session'
@@ -26,7 +26,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
       <ProductForm
         productId={product.id}
         categories={categories}
-        canUseProductIdentifiers={isProPlan(usage.plan)}
+        canUseProductIdentifiers={hasProductIdentifiersFeature(usage.plan)}
         initial={{
           name: product.name,
           referenceCode: product.referenceCode,

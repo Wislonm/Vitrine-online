@@ -1,14 +1,18 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { updatePlanAction } from '@/app/actions/admin'
 import { Button } from '@/components/ui/button'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { NativeSelect } from '@/components/ui/native-select'
 import { Switch } from '@/components/ui/switch'
-import { parsePriceInput } from '@/lib/format'
+import { parsePriceInput, slugify } from '@/lib/format'
+import { getPlanDisplayFeatures, PLAN_FEATURE_ICON_OPTIONS } from '@/lib/plan-features'
+import { PlanFeatureIcon } from '@/components/plan-feature-icon'
+import type { PlanDisplayFeature, PlanFeatures } from '@/lib/db/schema'
 import type { FieldErrors } from '@/lib/validators'
 
 type PlanEditorProps = {
@@ -24,17 +28,39 @@ type PlanEditorProps = {
     semiannualPrice: string | null
     annualPrice: string | null
     isActive: boolean
-    features: Record<string, boolean | undefined>
+    features: PlanFeatures
   }
-  featureLabels: Record<string, string>
 }
 
-export function PlanEditor({ plan, featureLabels }: PlanEditorProps) {
+export function PlanEditor({ plan }: PlanEditorProps) {
   const [pending, startTransition] = useTransition()
   const [errors, setErrors] = useState<FieldErrors>({})
   const [isActive, setIsActive] = useState(plan.isActive)
   const [isPermanentFree, setIsPermanentFree] = useState(plan.slug === 'trial-default' && plan.trialDays === 0)
   const [trialDaysInput, setTrialDaysInput] = useState(String(plan.trialDays > 0 ? plan.trialDays : 7))
+  const [featureItems, setFeatureItems] = useState<PlanDisplayFeature[]>(() => getPlanDisplayFeatures(plan.slug, plan.features))
+
+  function updateFeatureItem(id: string, updates: Partial<PlanDisplayFeature>) {
+    setFeatureItems((current) => current.map((feature) => feature.id === id ? { ...feature, ...updates } : feature))
+    setErrors((current) => ({ ...current, displayFeatures: undefined }))
+  }
+
+  function updateFeatureLabel(id: string, label: string) {
+    setFeatureItems((current) => current.map((feature) => feature.id === id
+      ? { ...feature, label, key: feature.systemKey ? feature.key : feature.key || slugify(label) }
+      : feature))
+    setErrors((current) => ({ ...current, displayFeatures: undefined }))
+  }
+
+  function addFeatureItem() {
+    const id = crypto.randomUUID()
+    setFeatureItems((current) => [...current, { id, key: '', label: '', icon: 'sparkles', enabled: true, systemKey: null }])
+  }
+
+  function removeFeatureItem(id: string) {
+    setFeatureItems((current) => current.filter((feature) => feature.id !== id))
+    setErrors((current) => ({ ...current, displayFeatures: undefined }))
+  }
 
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -46,7 +72,21 @@ export function PlanEditor({ plan, featureLabels }: PlanEditorProps) {
     const annualRaw = String(form.get('annualPrice') ?? '').trim()
     const semiannualPrice = isTrial || !semiannualRaw ? null : parsePriceInput(semiannualRaw)
     const annualPrice = isTrial || !annualRaw ? null : parsePriceInput(annualRaw)
+    const displayFeatures = featureItems.map((feature) => ({
+      ...feature,
+      key: feature.systemKey ?? (feature.key || slugify(feature.label)),
+      label: feature.label.trim(),
+    }))
+    const featureKeys = displayFeatures.map((feature) => feature.key)
+    const featureNameKeys = displayFeatures.map((feature) => slugify(feature.label))
     const priceErrors: FieldErrors = {}
+    if (
+      displayFeatures.some((feature) => !feature.label || !feature.key) ||
+      new Set(featureKeys).size !== featureKeys.length ||
+      new Set(featureNameKeys).size !== featureNameKeys.length
+    ) {
+      priceErrors.displayFeatures = ['Preencha cada recurso e use um nome único em cada plano.']
+    }
     if (isTrial && !isPermanentFree && (!Number.isInteger(trialDays) || trialDays < 1 || trialDays > 365)) {
       priceErrors.trialDays = ['Informe de 1 a 365 dias ou escolha o acesso permanente.']
     }
@@ -68,6 +108,7 @@ export function PlanEditor({ plan, featureLabels }: PlanEditorProps) {
         monthlyPrice,
         semiannualPrice,
         annualPrice,
+        displayFeatures,
         isActive,
       })
       if (result.ok) {
@@ -159,23 +200,74 @@ export function PlanEditor({ plan, featureLabels }: PlanEditorProps) {
         </label>
       )}
 
-      <div>
-        <p className="mb-2 px-1 text-sm font-medium">Recursos habilitados</p>
-        <ul className="flex flex-wrap gap-2">
-          {Object.entries(featureLabels).map(([key, label]) => (
-            <li
-              key={key}
-              className={
-                plan.features[key]
-                  ? 'rounded-full bg-sage px-3 py-1 text-xs text-sage-foreground'
-                  : 'rounded-full bg-background px-3 py-1 text-xs text-muted-foreground line-through'
-              }
-            >
-              {label}
-            </li>
-          ))}
-        </ul>
-      </div>
+      <fieldset className="flex flex-col gap-4 rounded-3xl bg-background p-5">
+        <legend className="sr-only">Recursos do plano</legend>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-semibold">Recursos habilitados</h3>
+            <p className="mt-1 text-xs text-muted-foreground">Defina o nome, o ícone e se cada recurso está incluído neste plano.</p>
+          </div>
+          <Button type="button" size="sm" variant="outline" disabled={featureItems.length >= 30} onClick={addFeatureItem}>
+            <Plus aria-hidden="true" />Adicionar recurso
+          </Button>
+        </div>
+
+        {featureItems.map((feature, index) => (
+          <div key={feature.id} className="grid min-w-0 gap-3 rounded-2xl bg-muted p-4 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <Field label="Recurso" htmlFor={`feature-label-${plan.id}-${feature.id}`}>
+                <Input
+                  id={`feature-label-${plan.id}-${feature.id}`}
+                  value={feature.label}
+                  onChange={(event) => updateFeatureLabel(feature.id, event.target.value)
+                  placeholder="Nome do recurso"
+                  className="bg-background"
+                  maxLength={120}
+                  aria-invalid={Boolean(errors.displayFeatures?.[0] && !feature.label.trim())}
+                />
+              </Field>
+            </div>
+            <Field label="Ícone" htmlFor={`feature-icon-${plan.id}-${feature.id}`}>
+              <div className="flex min-w-0 items-center gap-2">
+                <NativeSelect
+                  id={`feature-icon-${plan.id}-${feature.id}`}
+                  value={feature.icon}
+                  className="min-w-0 flex-1 bg-background"
+                  onChange={(event) => updateFeatureItem(feature.id, { icon: event.target.value as PlanDisplayFeature['icon'] })}
+                >
+                  {PLAN_FEATURE_ICON_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                </NativeSelect>
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-background">
+                  <PlanFeatureIcon name={feature.icon} className="size-4" />
+                </span>
+              </div>
+            </Field>
+            <Field label="Disponibilidade" htmlFor={`feature-enabled-${plan.id}-${feature.id}`}>
+              <div className="flex min-w-0 items-center gap-2">
+                <NativeSelect
+                  id={`feature-enabled-${plan.id}-${feature.id}`}
+                  value={feature.enabled ? 'enabled' : 'disabled'}
+                  className="min-w-0 flex-1 bg-background"
+                  onChange={(event) => updateFeatureItem(feature.id, { enabled: event.target.value === 'enabled' })}
+                >
+                  <option value="enabled">Incluído</option>
+                  <option value="disabled">Não incluído</option>
+                </NativeSelect>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={`Remover recurso ${feature.label || index + 1}`}
+                  onClick={() => removeFeatureItem(feature.id)}
+                >
+                  <Trash2 aria-hidden="true" />
+                </Button>
+              </div>
+            </Field>
+          </div>
+        ))}
+        {errors.displayFeatures?.[0] && <p role="alert" className="text-sm text-destructive">{errors.displayFeatures[0]}</p>}
+      </fieldset>
 
       <div>
         <Button type="submit" disabled={pending}>

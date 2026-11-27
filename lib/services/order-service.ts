@@ -4,7 +4,7 @@ import { user } from '@/lib/db/schema'
 import { centsToDecimalString, toCents } from '@/lib/format'
 import { createOrderWithItems } from '@/lib/repositories/orders'
 import { findPublicProductsByIds } from '@/lib/repositories/products'
-import { getPlanForStore, isProPlan } from '@/lib/repositories/plans'
+import { getPlanForStore, hasProductIdentifiersFeature } from '@/lib/repositories/plans'
 import { findStoreBySlug } from '@/lib/repositories/stores'
 import { listVariations } from '@/lib/repositories/variations'
 import { buildOrderMessage, buildWhatsappUrl } from '@/lib/whatsapp'
@@ -38,7 +38,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
   if (!owner || owner.status === 'blocked') {
     return { ok: false, status: 404, error: 'Loja não encontrada.' }
   }
-  const canUseProductIdentifiers = isProPlan((await getPlanForStore(store.id))?.plan)
+  const canUseProductIdentifiers = hasProductIdentifiersFeature((await getPlanForStore(store.id))?.plan)
 
   if (!store.whatsapp) {
     return {

@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { getSellerContextOrThrow, UnauthorizedError } from '@/lib/session'
 import { deleteProduct, getProduct, setProductFlags } from '@/lib/repositories/products'
-import { getPlanForStore, isProPlan } from '@/lib/repositories/plans'
+import { getPlanForStore, hasProductIdentifiersFeature } from '@/lib/repositories/plans'
 import { listProductsForOrdering, saveProductOrder } from '@/lib/repositories/products-order'
 import { createProduct, editProduct } from '@/lib/services/product-service'
 import { productSchema, zodFieldErrors, type ActionResult } from '@/lib/validators'
@@ -25,7 +25,7 @@ export async function saveProductAction(productId: string | null, raw: unknown):
     if (productId !== null && !z.uuid().safeParse(productId).success) return { ok: false, error: 'Produto não encontrado' }
 
     const rawRecord = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {}
-    const canUseProductIdentifiers = isProPlan((await getPlanForStore(store.id))?.plan)
+    const canUseProductIdentifiers = hasProductIdentifiersFeature((await getPlanForStore(store.id))?.plan)
     const existingProduct = !canUseProductIdentifiers && productId ? await getProduct(store.id, productId) : null
     const rawVariations = Array.isArray(rawRecord.variations) ? rawRecord.variations : []
     const variations = rawVariations

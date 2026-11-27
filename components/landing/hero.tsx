@@ -13,7 +13,7 @@ export function Hero({ trialDays }: { trialDays: number }) {
         <div className="flex flex-col items-start gap-7">
           <span className="rise-in inline-flex items-center gap-2 rounded-full bg-muted px-4 py-2 text-xs font-medium">
             <span className="size-2 rounded-full bg-sage" aria-hidden="true" />
-            {trialLabel}, sem cartão
+            {trialDays === 0 ? 'Grátis' : `${trialLabel}, sem cartão`}
           </span>
 
           <h1

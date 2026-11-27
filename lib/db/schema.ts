@@ -77,6 +77,17 @@ export const verification = pgTable('verification', {
 
 const tz = { withTimezone: true } as const
 
+export type PlanFeatureIcon = 'store' | 'dashboard' | 'list' | 'cart' | 'message' | 'palette' | 'globe' | 'tag' | 'layers' | 'inventory' | 'search' | 'sparkles'
+
+export type PlanDisplayFeature = {
+  id: string
+  key: string
+  label: string
+  icon: PlanFeatureIcon
+  enabled: boolean
+  systemKey?: string | null
+}
+
 export type PlanFeatures = {
   public_storefront?: boolean
   categories?: boolean
@@ -85,6 +96,11 @@ export type PlanFeatures = {
   hero_customization?: boolean
   seller_panel?: boolean
   custom_domain?: boolean
+  product_identifiers?: boolean
+  product_variations?: boolean
+  inventory?: boolean
+  search?: boolean
+  displayFeatures?: PlanDisplayFeature[]
 }
 
 export type SocialLinks = {

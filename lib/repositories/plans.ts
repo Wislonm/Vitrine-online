@@ -6,8 +6,8 @@ import { plans, stores, subscriptions } from '@/lib/db/schema'
 export type Plan = typeof plans.$inferSelect
 export type CheckoutBillingPeriod = 'monthly' | 'semiannual' | 'yearly'
 
-export function isProPlan(plan: Pick<Plan, 'slug'> | null | undefined) {
-  return plan?.slug === 'business'
+export function hasProductIdentifiersFeature(plan: Pick<Plan, 'slug' | 'features'> | null | undefined) {
+  return plan?.slug === 'business' && plan.features?.product_identifiers !== false
 }
 
 export function getPlanPrice(plan: Plan, period: CheckoutBillingPeriod) {
@@ -43,7 +43,7 @@ export async function getPlanForStore(storeId: string) {
 
 export async function updatePlan(
   planId: string,
-  data: Pick<Plan, 'name' | 'description' | 'productLimit' | 'trialDays' | 'price' | 'monthlyPrice' | 'semiannualPrice' | 'annualPrice' | 'billingPeriod' | 'isActive'>,
+  data: Pick<Plan, 'name' | 'description' | 'productLimit' | 'trialDays' | 'price' | 'monthlyPrice' | 'semiannualPrice' | 'annualPrice' | 'billingPeriod' | 'features' | 'isActive'>,
 ) {
   await db
     .update(plans)
