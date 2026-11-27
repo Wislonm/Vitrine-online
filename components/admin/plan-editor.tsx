@@ -277,14 +277,11 @@ export function PlanEditor({ plan }: PlanEditorProps) {
               />
             </div>
             <div className="flex items-center justify-end gap-3 sm:shrink-0">
-              <span id={`feature-availability-label-${plan.id}-${feature.id}`} className="whitespace-nowrap text-sm font-medium">
-                Disponibilidade
-              </span>
               <Switch
                 id={`feature-enabled-${plan.id}-${feature.id}`}
                 checked={feature.enabled}
                 onCheckedChange={(enabled) => updateFeatureItem(feature.id, { enabled })}
-                aria-labelledby={`feature-availability-label-${plan.id}-${feature.id}`}
+                aria-label={`Disponibilidade do recurso ${feature.label || index + 1}`}
               />
               <Button
                 type="button"
