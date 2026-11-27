@@ -219,7 +219,7 @@ export function PlanEditor({ plan }: PlanEditorProps) {
                 <Input
                   id={`feature-label-${plan.id}-${feature.id}`}
                   value={feature.label}
-                  onChange={(event) => updateFeatureLabel(feature.id, event.target.value)
+                  onChange={(event) => updateFeatureLabel(feature.id, event.target.value)}
                   placeholder="Nome do recurso"
                   className="bg-background"
                   maxLength={120}
