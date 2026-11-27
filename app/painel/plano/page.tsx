@@ -4,7 +4,7 @@ import { Check, Clock3, Package } from 'lucide-react'
 import { PageHeader } from '@/components/panel/page-header'
 import { MercadoPagoTransparentCheckout } from '@/components/panel/mercadopago-transparent-checkout'
 import { CancelMercadoPagoSubscriptionButton } from '@/components/panel/cancel-mercadopago-subscription-button'
-import { formatBRL } from '@/lib/format'
+import { formatBRL, formatTrialDays } from '@/lib/format'
 import { getMercadoPagoSettingsForAdmin } from '@/lib/repositories/payment-settings'
 import { getPlanPeriodPrices, getPlanPrice, listPlans } from '@/lib/repositories/plans'
 import { requireSellerContext } from '@/lib/session'
@@ -40,14 +40,17 @@ export default async function PlanPage() {
     listPlans(),
   ])
   const contractPlan = plans.find((plan) => plan.slug === 'business' && plan.isActive) ?? plans.find((plan) => plan.isActive && plan.slug !== 'trial-default') ?? null
-  const trialDurationDays = plans.find((plan) => plan.slug === 'trial-default')?.trialDays ?? 7
   const trialEnd = usage.subscription?.expiresAt ?? null
+  const configuredTrialDays = plans.find((plan) => plan.slug === 'trial-default')?.trialDays ?? 7
+  const trialDurationDays = usage.isTrial && usage.subscription?.startedAt && trialEnd
+    ? Math.max(1, Math.round((trialEnd.getTime() - usage.subscription.startedAt.getTime()) / (24 * 60 * 60 * 1000)))
+    : configuredTrialDays
   const periodOptions = contractPlan ? getPlanPeriodPrices(contractPlan) : []
   const defaultPeriod = periodOptions[0]?.period ?? 'monthly'
   const planPrice = contractPlan ? getPlanPrice(contractPlan, 'monthly') ?? periodOptions[0]?.amount ?? 0 : 0
   const checkoutConfigured = Boolean(paymentSettings.publicKey && paymentSettings.hasAccessToken && paymentSettings.hasWebhookSecret)
   const environmentSafe = paymentSettings.environment === 'production' ? process.env.VERCEL_ENV === 'production' : process.env.VERCEL_ENV !== 'production'
-  const canStartContract = usage.subscriptionExpired || usage.isTrial
+  const canStartContract = usage.subscriptionExpired || usage.isTrial || usage.isPermanentFree
   const checkoutAvailable = canStartContract && periodOptions.length > 0 && checkoutConfigured && environmentSafe
   const checkoutUnavailableMessage = periodOptions.length === 0
     ? 'Configure ao menos um preço no plano Pro para liberar o checkout.'
@@ -88,7 +91,7 @@ export default async function PlanPage() {
     <>
       <PageHeader
         title={pageTitle}
-        description={usage.subscriptionExpired ? unavailableDescription : usage.isTrial ? `Seu período de degustação libera todos os recursos do plano Pro por ${trialDurationDays} dias.` : 'Acompanhe sua assinatura, o limite de produtos e a próxima renovação.'}
+        description={usage.subscriptionExpired ? unavailableDescription : usage.isPermanentFree ? 'Seu plano Gratuito não expira. Você pode contratar o Pro quando quiser.' : usage.isTrial ? `Seu período de degustação libera todos os recursos do plano Pro por ${trialDurationDays} dias.` : 'Acompanhe sua assinatura, o limite de produtos e a próxima renovação.'}
       />
 
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-5">
@@ -100,13 +103,18 @@ export default async function PlanPage() {
             </div>
             <div className="flex flex-col items-end gap-2">
               <span className={`rounded-full px-3 py-1.5 text-xs font-medium ${usage.subscriptionExpired ? 'bg-destructive/10 text-destructive' : 'bg-background text-foreground'}`}>
-                {usage.subscriptionExpired ? paymentReversed ? 'Pagamento estornado' : usage.isTrial ? 'Teste encerrado' : 'Assinatura suspensa' : usage.isTrial ? 'Teste grátis' : usage.subscription?.mercadoPagoStatus === 'cancelled' ? 'Renovação cancelada' : 'Ativo'}
+                {usage.subscriptionExpired ? paymentReversed ? 'Pagamento estornado' : usage.isTrial ? 'Teste encerrado' : 'Assinatura suspensa' : usage.isPermanentFree ? 'Gratuito permanente' : usage.isTrial ? 'Teste grátis' : usage.subscription?.mercadoPagoStatus === 'cancelled' ? 'Renovação cancelada' : 'Ativo'}
               </span>
-              {usage.isTrial && !usage.subscriptionExpired && <Link href="#contratar" className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">Seja Pro</Link>}
+              {(usage.isTrial || usage.isPermanentFree) && !usage.subscriptionExpired && <Link href="#contratar" className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">Seja Pro</Link>}
             </div>
           </div>
 
-          {usage.isTrial && !usage.subscriptionExpired && trialEnd ? (
+          {usage.isPermanentFree ? (
+            <div className="flex items-center gap-3 rounded-2xl bg-background p-4 text-sm">
+              <Check className="size-5 shrink-0 text-primary" aria-hidden="true" />
+              Acesso gratuito permanente, sem data de expiração.
+            </div>
+          ) : usage.isTrial && !usage.subscriptionExpired && trialEnd ? (
             <div className="flex items-center gap-3 rounded-2xl bg-background p-4">
               <Clock3 className="size-5 shrink-0 text-primary" aria-hidden="true" />
               <p className="text-sm">
@@ -153,7 +161,9 @@ export default async function PlanPage() {
           </div>
           <div className="rounded-2xl bg-background p-4 text-sm">
             <span className="font-semibold">Valor do plano: </span>
-            {periodOptions.length > 0
+            {usage.isPermanentFree
+              ? 'Gratuito permanente'
+              : periodOptions.length > 0
               ? usage.isTrial
                 ? `A partir de ${formatBRL(planPrice)} / ${billingPeriodLabels[defaultPeriod]}`
                 : `${formatBRL(Number(usage.subscription?.mercadoPagoAmount ?? planPrice))} / ${billingPeriodLabels[usage.subscription?.mercadoPagoBillingPeriod ?? defaultPeriod]}`
@@ -165,7 +175,7 @@ export default async function PlanPage() {
         <section id="contratar" className="flex scroll-mt-24 flex-col gap-5 rounded-3xl border border-border bg-background p-5 sm:p-8">
           <div>
             <h2 className="font-display text-xl font-semibold">Plano Pro</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Todos os recursos para administrar e divulgar sua loja, com {trialDurationDays} dias grátis na criação da conta. A contratação antecipada é opcional.</p>
+            <p className="mt-1 text-sm text-muted-foreground">{trialDurationDays > 0 ? `Todos os recursos para administrar e divulgar sua loja, com ${formatTrialDays(trialDurationDays)} na criação da conta. A contratação antecipada é opcional.` : 'Todos os recursos do Pro estão disponíveis para contratação a qualquer momento, mesmo no plano Gratuito permanente.'}</p>
           </div>
           <ul className="grid gap-3 sm:grid-cols-2">
             {features.map((feature) => <li key={feature} className="flex items-start gap-2 text-sm"><Check className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" /><span>{feature}</span></li>)}

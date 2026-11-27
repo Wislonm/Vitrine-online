@@ -1,12 +1,25 @@
 import type { Metadata } from 'next'
 import { LegalDocument } from '@/components/legal/legal-document'
+import { listPlans } from '@/lib/repositories/plans'
 
 export const metadata: Metadata = {
   title: 'Termos de Uso',
   description: 'Rascunho dos Termos de Uso da plataforma Minha Vitrine.',
 }
 
-const sections = [
+function getSections(trialDays: number) {
+  const trialPeriod = `${trialDays} ${trialDays === 1 ? 'dia' : 'dias'}`
+  const trialAccessParagraph = trialDays > 0
+    ? `Cada nova conta recebe o plano Degustação por ${trialPeriod}, com acesso aos recursos do Pro. O período começa com a criação da loja vinculada à conta.`
+    : 'Cada nova conta recebe o plano Gratuito permanente, com acesso aos recursos definidos para esse plano. O acesso começa com a criação da loja vinculada à conta.'
+  const trialBillingParagraph = trialDays > 0
+    ? `Ao fim de ${trialPeriod}, o acesso ao painel fica bloqueado até a contratação do plano Pro. O checkout transparente é processado pelo Mercado Pago e mostra o valor e o período antes da confirmação. O usuário escolhe entre pagamento único por cartão ou Pix, sem renovação automática, ou cobrança recorrente por cartão. A recorrência é opcional e vem desativada por padrão. Não há cobrança automática durante o teste grátis. Se o usuário contratar antes do fim do teste, o pagamento único é cobrado na hora; na recorrência, a primeira cobrança fica agendada para o fim do período grátis. Pix é sempre um pagamento único nesta integração.`
+    : 'O plano Gratuito permanente não expira e mantém o acesso ao painel enquanto a conta permanecer nesse plano. O usuário pode contratar o Pro quando quiser. O checkout transparente é processado pelo Mercado Pago e mostra o valor e o período antes da confirmação. O usuário escolhe entre pagamento único por cartão ou Pix, sem renovação automática, ou cobrança recorrente por cartão. A recorrência é opcional e vem desativada por padrão. Não há cobrança automática enquanto a conta estiver no plano Gratuito. Pix é sempre um pagamento único nesta integração.'
+  const trialSuspensionParagraph = trialDays > 0
+    ? `O painel pode ser suspenso ao fim do período de ${trialPeriod} enquanto a contratação do plano não estiver disponível. Separadamente, a Minha Vitrine pode suspender ou bloquear uma conta ou vitrine diante de indícios de fraude, risco à segurança, descumprimento destes termos, violação de direitos ou obrigação legal. Sempre que possível e permitido, o usuário será informado do motivo e dos meios de regularização ou contestação.`
+    : 'O painel do plano Gratuito permanente não expira por tempo. Separadamente, a Minha Vitrine pode suspender ou bloquear uma conta ou vitrine diante de indícios de fraude, risco à segurança, descumprimento destes termos, violação de direitos ou obrigação legal. Sempre que possível e permitido, o usuário será informado do motivo e dos meios de regularização ou contestação.'
+
+  return [
   {
     title: '1. Identificação e versão do documento',
     paragraphs: [
@@ -31,8 +44,8 @@ const sections = [
   {
     title: '4. Teste grátis, plano e cobrança',
     paragraphs: [
-      'Cada nova conta recebe o plano Degustação por 7 dias, com acesso aos recursos do Pro. O período começa com a criação da loja vinculada à conta.',
-      'Ao fim dos 7 dias, o acesso ao painel fica bloqueado até a contratação do plano Pro. O checkout transparente é processado pelo Mercado Pago e mostra o valor e o período antes da confirmação. O usuário escolhe entre pagamento único por cartão ou Pix, sem renovação automática, ou cobrança recorrente por cartão. A recorrência é opcional e vem desativada por padrão. Não há cobrança automática durante o teste grátis. Se o usuário contratar antes do fim do teste, o pagamento único é cobrado na hora; na recorrência, a primeira cobrança fica agendada para o fim do período grátis. Pix é sempre um pagamento único nesta integração.',
+      trialAccessParagraph,
+      trialBillingParagraph,
       'Os dados do cartão são capturados e tokenizados pelo SDK seguro do Mercado Pago. A Minha Vitrine não recebe nem armazena o número completo do cartão ou o código de segurança; recebe o token necessário para criar a assinatura e o estado retornado pelo provedor.',
       'O usuário pode cancelar a renovação pelo painel. Quando o Mercado Pago informar uma data de encerramento do período já pago, o acesso permanece até essa data; caso contrário, o cancelamento pode encerrar o acesso imediatamente.',
       'Enquanto a conta estiver sem acesso ao painel, a vitrine pública pode continuar disponível se não tiver sido desativada ou suspensa por outro motivo. A plataforma poderá limitar essa disponibilidade em situações de segurança, descumprimento destes termos ou exigência legal.',
@@ -75,7 +88,7 @@ const sections = [
   {
     title: '9. Suspensão, bloqueio e encerramento',
     paragraphs: [
-      'O painel pode ser suspenso ao fim do período de teste enquanto a contratação do plano não estiver disponível. Separadamente, a Minha Vitrine pode suspender ou bloquear uma conta ou vitrine diante de indícios de fraude, risco à segurança, descumprimento destes termos, violação de direitos ou obrigação legal. Sempre que possível e permitido, o usuário será informado do motivo e dos meios de regularização ou contestação.',
+      trialSuspensionParagraph,
       'O usuário poderá solicitar o encerramento da conta pelo canal oficial de atendimento, que ainda precisa ser definido. O encerramento poderá resultar na remoção da vitrine e dos dados, respeitados os prazos e deveres legais de retenção.',
     ],
   },
@@ -99,9 +112,14 @@ const sections = [
       'Aplicam-se as leis da República Federativa do Brasil. A identificação legal do fornecedor, o endereço e o canal oficial para dúvidas, notificações e solicitações ainda estão pendentes e devem ser incluídos antes da versão final.',
     ],
   },
-]
+  ]
+}
 
-export default function TermsPage() {
+export default async function TermsPage() {
+  const plans = await listPlans()
+  const trialDays = plans.find((plan) => plan.slug === 'trial-default')?.trialDays ?? 7
+  const sections = getSections(trialDays)
+
   return (
     <LegalDocument
       title="Termos de Uso"

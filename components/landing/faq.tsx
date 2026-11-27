@@ -1,11 +1,13 @@
 import { Plus } from 'lucide-react'
 
 function getQuestions(trialDays: number) {
-  const trialPeriod = `${trialDays} ${trialDays === 1 ? 'dia' : 'dias'}`
+  const trialPeriod = trialDays > 0 ? `${trialDays} ${trialDays === 1 ? 'dia' : 'dias'}` : null
   return [
   {
     q: 'Preciso pagar para criar minha vitrine?',
-    a: `Não. Cada nova conta recebe ${trialPeriod} grátis com acesso completo ao painel e aos recursos do plano Pro, sem cartão e sem cobrança durante o teste.`,
+    a: trialPeriod
+      ? `Não. Cada nova conta recebe ${trialPeriod} grátis com acesso completo ao painel e aos recursos do plano Pro, sem cartão e sem cobrança durante o teste.`
+      : 'Não. Cada nova conta recebe acesso ao plano gratuito permanente, com acesso completo e sem cartão.',
   },
   {
     q: 'O cliente paga pelo site?',
@@ -20,8 +22,10 @@ function getQuestions(trialDays: number) {
     a: 'Sim. No painel você edita o nome exibido, a descrição, as imagens da vitrine e escolhe entre 12 paletas de cores para combinar com sua marca.',
   },
   {
-    q: `O que acontece após ${trialPeriod} grátis?`,
-    a: `Ao fim do período de teste de ${trialPeriod}, o painel fica bloqueado até a contratação do plano Pro. Seus dados e sua vitrine permanecem salvos. No checkout você escolhe pagamento único por cartão ou Pix, ou renovação recorrente no cartão.`,
+    q: trialPeriod ? `O que acontece após ${trialPeriod} grátis?` : 'O plano gratuito tem prazo de expiração?',
+    a: trialPeriod
+      ? `Ao fim do período de teste de ${trialPeriod}, o painel fica bloqueado até a contratação do plano Pro. Seus dados e sua vitrine permanecem salvos. No checkout você escolhe pagamento único por cartão ou Pix, ou renovação recorrente no cartão.`
+      : 'Não. O plano gratuito permanece ativo sem data de expiração. Você pode contratar o Pro quando quiser.',
   },
   {
     q: 'Posso usar meu próprio domínio?',

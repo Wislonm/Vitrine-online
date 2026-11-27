@@ -37,7 +37,7 @@ export default async function DashboardPage() {
               {usage.plan?.name ?? 'Pro'}
             </h2>
             <div className="flex flex-wrap items-center justify-end gap-3">
-              {usage.isTrial && <Link href="/painel/plano#contratar" className="rounded-full bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground">Seja Pro</Link>}
+              {(usage.isTrial || usage.isPermanentFree) && <Link href="/painel/plano#contratar" className="rounded-full bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground">Seja Pro</Link>}
               <Link href="/painel/plano" className="text-sm underline-offset-4 hover:underline">
                 Detalhes
               </Link>
@@ -51,6 +51,9 @@ export default async function DashboardPage() {
             <p className="mt-1 text-sm text-muted-foreground">produtos cadastrados</p>
           </div>
           <UsageBar used={usage.used} limit={usage.limit} percent={usage.percent} />
+          {usage.isPermanentFree && (
+            <p className="flex items-center gap-2 text-sm text-muted-foreground"><Clock3 className="size-4 shrink-0" aria-hidden="true" />Plano gratuito permanente</p>
+          )}
           {usage.isTrial && usage.daysRemaining !== null && (
             <p className="flex items-center gap-2 text-sm text-muted-foreground"><Clock3 className="size-4 shrink-0" aria-hidden="true" />Teste grátis: {usage.daysRemaining} {usage.daysRemaining === 1 ? 'dia restante' : 'dias restantes'}</p>
           )}

@@ -32,7 +32,7 @@ const billingPeriodLabels = {
 function PlanCard({ plan, trialDays }: { plan: Plan; trialDays: number }) {
   const isTrial = plan.slug === 'trial-default'
   const periodPrices = getPlanPeriodPrices(plan)
-  const trialPeriod = `${trialDays} ${trialDays === 1 ? 'dia' : 'dias'}`
+  const trialPeriod = trialDays > 0 ? `${trialDays} ${trialDays === 1 ? 'dia' : 'dias'}` : null
 
   return (
     <article className="flex min-w-0 flex-col gap-6 rounded-[2rem] bg-card p-6 sm:p-8">
@@ -51,7 +51,7 @@ function PlanCard({ plan, trialDays }: { plan: Plan; trialDays: number }) {
         </p>
         {isTrial && (
           <div className="flex flex-col gap-1">
-            <span className="text-xs text-muted-foreground">Durante o teste</span>
+            <span className="text-xs text-muted-foreground">{plan.trialDays > 0 ? 'Durante o teste' : 'Acesso permanente'}</span>
             <strong className="font-display text-2xl font-semibold">Grátis</strong>
           </div>
         )}
@@ -100,12 +100,12 @@ function PlanCard({ plan, trialDays }: { plan: Plan; trialDays: number }) {
 
       <div className="mt-auto flex flex-col gap-3">
         <Link href="/cadastro" className={cn(buttonVariants({ size: 'lg' }))}>
-          {isTrial ? 'Criar vitrine grátis' : `Começar pelo teste de ${trialPeriod}`}
+          {isTrial ? 'Criar vitrine grátis' : trialPeriod ? `Começar pelo teste de ${trialPeriod}` : 'Começar grátis'}
         </Link>
         <p className="text-center text-xs text-muted-foreground">
           {isTrial
-            ? 'Sem cartão e sem cobrança durante o teste.'
-            : 'Após o teste, escolha a periodicidade e pague por cartão ou Pix. A renovação automática é opcional.'}
+            ? plan.trialDays > 0 ? 'Sem cartão e sem cobrança durante o teste.' : 'Acesso gratuito permanente, sem data de expiração.'
+            : trialPeriod ? `Após o teste, escolha a periodicidade e pague por cartão ou Pix. A renovação automática é opcional.` : 'Comece no plano gratuito permanente e contrate o Pro quando quiser.'}
         </p>
       </div>
     </article>

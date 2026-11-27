@@ -14,6 +14,7 @@ export async function getPlanUsage(storeId: string) {
     subscription && ((expiresAt && expiresAt.getTime() <= Date.now()) || terminalStatuses.includes(subscription.status)),
   )
   const isTrial = subscription?.status === 'trial'
+  const isPermanentFree = plan?.slug === 'trial-default' && subscription?.status === 'active' && expiresAt === null
   const daysRemaining = expiresAt
     ? Math.max(Math.ceil((expiresAt.getTime() - Date.now()) / DAY_MS), 0)
     : null
@@ -31,6 +32,7 @@ export async function getPlanUsage(storeId: string) {
     percent: limit > 0 ? Math.min(Math.round((used / limit) * 100), 100) : 100,
     isFull: used >= limit,
     isTrial,
+    isPermanentFree,
     daysRemaining,
     daysUntilRenewal,
     subscriptionExpired,
