@@ -74,9 +74,14 @@ export function ImageUploader({ kind, value, onChange, label, className, shape =
   return (
     <div className={cn('min-w-0 max-w-full overflow-hidden', compact ? 'flex flex-row items-center gap-2' : 'flex flex-col gap-3', className)}>
       {!compact && <span className="px-1 text-[0.8125rem] font-medium">{label}</span>}
-      <div
+      <button
+        type="button"
+        aria-label={`${value ? 'Trocar' : 'Enviar'} ${label}`}
+        aria-busy={uploading}
+        disabled={uploading}
+        onClick={() => inputRef.current?.click()}
         className={cn(
-          'relative flex items-center justify-center overflow-hidden bg-tile',
+          'relative flex cursor-pointer items-center justify-center overflow-hidden border-0 bg-tile p-0 text-foreground transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-70',
           compact ? 'size-12 rounded-[10px]' : shape === 'circle' ? 'size-40 rounded-full' : shape === 'wide' ? 'aspect-[4/1] w-full rounded-[10px]' : 'aspect-square w-full max-w-64 rounded-[10px]',
         )}
       >
@@ -87,11 +92,11 @@ export function ImageUploader({ kind, value, onChange, label, className, shape =
           <ImagePlus className="size-7 text-muted-foreground" aria-hidden="true" />
         )}
         {uploading && !source && (
-          <div className="absolute inset-0 flex items-center justify-center bg-background/70">
+          <span className="absolute inset-0 flex items-center justify-center bg-background/70">
             <Loader2 className="size-6 animate-spin" aria-label="Enviando imagem" />
-          </div>
+          </span>
         )}
-      </div>
+      </button>
 
       <div className="flex flex-wrap gap-2">
         <input
