@@ -7,7 +7,7 @@ import { updatePlanAction } from '@/app/actions/admin'
 import { Button } from '@/components/ui/button'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { NativeSelect } from '@/components/ui/native-select'
+import { Popover, PopoverContent, PopoverDescription, PopoverHeader, PopoverTitle, PopoverTrigger } from '@/components/ui/popover'
 import { Switch } from '@/components/ui/switch'
 import { parsePriceInput, slugify } from '@/lib/format'
 import { getPlanDisplayFeatures, PLAN_FEATURE_ICON_OPTIONS } from '@/lib/plan-features'
@@ -39,6 +39,7 @@ export function PlanEditor({ plan }: PlanEditorProps) {
   const [isPermanentFree, setIsPermanentFree] = useState(plan.slug === 'trial-default' && plan.trialDays === 0)
   const [trialDaysInput, setTrialDaysInput] = useState(String(plan.trialDays > 0 ? plan.trialDays : 7))
   const [featureItems, setFeatureItems] = useState<PlanDisplayFeature[]>(() => getPlanDisplayFeatures(plan.slug, plan.features))
+  const [openFeatureId, setOpenFeatureId] = useState<string | null>(null)
 
   function updateFeatureItem(id: string, updates: Partial<PlanDisplayFeature>) {
     setFeatureItems((current) => current.map((feature) => feature.id === id ? { ...feature, ...updates } : feature))
@@ -228,40 +229,71 @@ export function PlanEditor({ plan }: PlanEditorProps) {
               </Field>
             </div>
             <Field label="Ícone" htmlFor={`feature-icon-${plan.id}-${feature.id}`}>
-              <div className="flex min-w-0 items-center gap-2">
-                <NativeSelect
-                  id={`feature-icon-${plan.id}-${feature.id}`}
-                  value={feature.icon}
-                  className="min-w-0 flex-1 bg-background"
-                  onChange={(event) => updateFeatureItem(feature.id, { icon: event.target.value as PlanDisplayFeature['icon'] })}
-                >
-                  {PLAN_FEATURE_ICON_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                </NativeSelect>
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-background">
-                  <PlanFeatureIcon name={feature.icon} className="size-4" />
-                </span>
-              </div>
+              <Popover
+                open={openFeatureId === feature.id}
+                onOpenChange={(open) => setOpenFeatureId(open ? feature.id : null)}
+              >
+                <PopoverTrigger
+                  render={
+                    <Button
+                      id={`feature-icon-${plan.id}-${feature.id}`}
+                      type="button"
+                      variant="outline"
+                      size="icon-sm"
+                      aria-label={`Escolher ícone para ${feature.label || `recurso ${index + 1}`}`}
+                    >
+                      <PlanFeatureIcon name={feature.icon} />
+                    </Button>
+                  }
+                />
+                <PopoverContent align="start" className="w-64">
+                  <PopoverHeader>
+                    <PopoverTitle>Escolher ícone</PopoverTitle>
+                    <PopoverDescription>Ícone do recurso “{feature.label || `recurso ${index + 1}`}”.</PopoverDescription>
+                  </PopoverHeader>
+                  <div role="group" aria-label="Ícones disponíveis" className="grid grid-cols-4 gap-2">
+                    {PLAN_FEATURE_ICON_OPTIONS.map((option) => (
+                      <Button
+                        key={option.value}
+                        type="button"
+                        variant={feature.icon === option.value ? 'secondary' : 'ghost'}
+                        size="icon-sm"
+                        aria-label={`Usar ícone ${option.label}`}
+                        title={option.label}
+                        aria-pressed={feature.icon === option.value}
+                        onClick={() => {
+                          updateFeatureItem(feature.id, { icon: option.value })
+                          setOpenFeatureId(null)
+                        }}
+                      >
+                        <PlanFeatureIcon name={option.value} />
+                        <span className="sr-only">{option.label}</span>
+                      </Button>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
             </Field>
             <Field label="Disponibilidade" htmlFor={`feature-enabled-${plan.id}-${feature.id}`}>
-              <div className="flex min-w-0 items-center gap-2">
-                <NativeSelect
-                  id={`feature-enabled-${plan.id}-${feature.id}`}
-                  value={feature.enabled ? 'enabled' : 'disabled'}
-                  className="min-w-0 flex-1 bg-background"
-                  onChange={(event) => updateFeatureItem(feature.id, { enabled: event.target.value === 'enabled' })}
-                >
-                  <option value="enabled">Incluído</option>
-                  <option value="disabled">Não incluído</option>
-                </NativeSelect>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={`Remover recurso ${feature.label || index + 1}`}
-                  onClick={() => removeFeatureItem(feature.id)}
-                >
-                  <Trash2 aria-hidden="true" />
-                </Button>
+              <div className="flex items-center justify-between gap-3 rounded-2xl bg-background px-4 py-3">
+                <span className="text-sm text-muted-foreground">{feature.enabled ? 'Incluído' : 'Não incluído'}</span>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id={`feature-enabled-${plan.id}-${feature.id}`}
+                    checked={feature.enabled}
+                    onCheckedChange={(enabled) => updateFeatureItem(feature.id, { enabled })}
+                    aria-label={`Disponibilidade do recurso ${feature.label || index + 1}`}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={`Remover recurso ${feature.label || index + 1}`}
+                    onClick={() => removeFeatureItem(feature.id)}
+                  >
+                    <Trash2 aria-hidden="true" />
+                  </Button>
+                </div>
               </div>
             </Field>
           </div>
