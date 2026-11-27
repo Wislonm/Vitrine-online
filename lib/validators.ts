@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { RESERVED_SLUGS, SLUG_PATTERN, normalizeWhatsapp } from '@/lib/format'
 import { isValidBrazilianDocument, onlyDocumentDigits } from '@/lib/brazil-document'
+import { PLAN_FEATURE_ICON_NAMES } from '@/lib/plan-features'
 
 const optionalText = (max: number) =>
   z
@@ -182,6 +183,14 @@ export const planUpdateSchema = z.object({
   monthlyPrice: z.number().min(0).max(9_999_999),
   semiannualPrice: z.number().positive().max(9_999_999).nullable(),
   annualPrice: z.number().positive().max(9_999_999).nullable(),
+  displayFeatures: z.array(z.object({
+    id: z.string().trim().min(1).max(100),
+    key: z.string().trim().min(1).max(100),
+    label: z.string().trim().min(1).max(120),
+    icon: z.enum(PLAN_FEATURE_ICON_NAMES),
+    enabled: z.boolean(),
+    systemKey: z.string().trim().min(1).max(80).nullable().optional(),
+  })).max(30).optional(),
   isActive: z.boolean(),
 })
 

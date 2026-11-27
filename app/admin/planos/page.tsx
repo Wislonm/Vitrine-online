@@ -4,16 +4,6 @@ import { listPlans } from '@/lib/repositories/plans'
 
 export const metadata: Metadata = { title: 'Planos' }
 
-const featureLabels = {
-  public_storefront: 'Vitrine pública',
-  categories: 'Categorias',
-  side_cart: 'Carrinho lateral',
-  whatsapp_orders: 'Pedidos pelo WhatsApp',
-  hero_customization: 'Personalização do cabeçalho',
-  seller_panel: 'Painel do vendedor',
-  custom_domain: 'Domínio personalizado',
-}
-
 export default async function AdminPlansPage() {
   const allPlans = await listPlans()
   const plans = allPlans.filter((plan) => plan.isActive || plan.slug === 'trial-default')
@@ -28,7 +18,6 @@ export default async function AdminPlansPage() {
         {plans.map((plan) => (
           <PlanEditor
             key={plan.id}
-            featureLabels={featureLabels}
             plan={{
               id: plan.id,
               slug: plan.slug,
@@ -41,7 +30,7 @@ export default async function AdminPlansPage() {
               semiannualPrice: plan.semiannualPrice,
               annualPrice: plan.annualPrice,
               isActive: plan.isActive,
-              features: plan.features as Record<string, boolean | undefined>,
+              features: plan.features,
             }}
           />
         ))}

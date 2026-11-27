@@ -6,6 +6,8 @@ import { getAdminOrThrow, UnauthorizedError } from '@/lib/session'
 import { deleteAccountPermanently, getAccountDeletionSnapshot, getStoreById, getUserById, recordAdminAction, setUserStatus } from '@/lib/repositories/admin'
 import { isAssetOwnedByStore, storage } from '@/lib/storage'
 import { getPlanPrice, listPlans, setStorePlan, updatePlan, type CheckoutBillingPeriod } from '@/lib/repositories/plans'
+import { DEFAULT_PLAN_FEATURES, getPlanDisplayFeatures } from '@/lib/plan-features'
+import type { PlanFeatures } from '@/lib/db/schema'
 import { getMercadoPagoCredentialsForServer, getMercadoPagoSettingsForAdmin, saveMercadoPagoSettings } from '@/lib/repositories/payment-settings'
 import { mercadoPagoSettingsSchema, planUpdateSchema, zodFieldErrors, type ActionResult } from '@/lib/validators'
 import { getDomainHosts, removeProjectDomain } from '@/lib/vercel-domains'
@@ -237,14 +239,25 @@ export async function updatePlanAction(raw: unknown): Promise<ActionResult> {
     if (!parsed.success) {
       return { ok: false, error: 'Revise os campos', fieldErrors: zodFieldErrors(parsed.error) }
     }
-    const { planId, ...parsedData } = parsed.data
+    const { planId, displayFeatures: submittedFeatures, ...parsedData } = parsed.data
     const existingPlan = (await listPlans()).find((plan) => plan.id === planId)
     if (!existingPlan) return { ok: false, error: 'Plano não encontrado' }
+    const allowedSystemKeys = new Set(DEFAULT_PLAN_FEATURES.map((feature) => feature.key))
+    const displayFeatures = (submittedFeatures ?? getPlanDisplayFeatures(existingPlan.slug, existingPlan.features)).map((feature) => ({
+      ...feature,
+      systemKey: feature.systemKey && allowedSystemKeys.has(feature.systemKey) ? feature.systemKey : null,
+    }))
+    const featureFlags = Object.fromEntries(DEFAULT_PLAN_FEATURES.map((feature) => [
+      feature.key,
+      displayFeatures.find((item) => item.systemKey === feature.key)?.enabled ?? false,
+    ])) as Partial<PlanFeatures>
+    const features: PlanFeatures = { ...existingPlan.features, ...featureFlags, displayFeatures }
     if (existingPlan.slug !== 'trial-default' && parsedData.monthlyPrice <= 0) {
       return { ok: false, error: 'Informe um preço mensal maior que zero para o plano Pro.', fieldErrors: { monthlyPrice: ['Informe um preço mensal maior que zero'] } }
     }
     const data = {
       ...parsedData,
+      features,
       price: parsedData.monthlyPrice.toFixed(2),
       monthlyPrice: parsedData.monthlyPrice.toFixed(2),
       semiannualPrice: parsedData.semiannualPrice?.toFixed(2) ?? null,
