@@ -98,7 +98,7 @@ export function ProductCard({ product, slug }: { product: StorefrontProduct; slu
                 aria-label={isColor ? `Selecionar cor ${option.label}` : isImage ? `Selecionar textura ${option.label}` : `Selecionar ${option.label}`}
                 aria-pressed={selected}
                 className={isColor || isImage
-                  ? `flex size-8 shrink-0 items-center justify-center rounded-full border-2 bg-foreground text-background transition-transform ${selected ? 'scale-110 border-primary ring-2 ring-primary' : 'border-foreground'}`
+                  ? `flex size-8 shrink-0 items-center justify-center rounded-full ${isColor ? 'border' : 'border-2'} bg-foreground text-background transition-transform ${selected ? 'scale-110 border-primary ring-2 ring-primary' : 'border-foreground'}`
                   : `shrink-0 rounded-full bg-foreground px-2.5 py-1 text-[0.7rem] text-background transition-colors ${selected ? 'ring-2 ring-primary' : 'hover:bg-foreground/85'}`}
               >
                 {isColor ? <i className="size-4 rounded-full" style={{ backgroundColor: option.colorValue ?? undefined }} /> : isImage ? <img src={option.imageUrl ?? ''} alt="" className="size-6 rounded-full object-cover" /> : option.value || option.label}
